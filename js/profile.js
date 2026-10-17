@@ -1,5 +1,5 @@
 // VOLFAI - oyuncu profili: ilerleme, onur puanı, HEPCOIN kasası, yükseltmeler
-import { LEVEL_COUNT, HONOR, UPGRADES } from './config.js';
+import { LEVEL_COUNT, HONOR, UPGRADES, SHIPS, MISSILE } from './config.js';
 import { parkurCount } from './levels.js';
 
 export function emptyProfile() {
@@ -7,7 +7,9 @@ export function emptyProfile() {
     v: 1,
     coins: 0,
     hiScore: 0,
-    upgrades: { engine: 0, shield: 0, laser: 0, cells: 0, time: 0, magnet: 0 },
+    upgrades: { engine: 0, shield: 0, laser: 0, cells: 0, time: 0, magnet: 0, armor: 0, deflector: 0 },
+    ship: 'monotros',
+    ships: { monotros: true },
     // levels[L] = { parkurs: { [p]: { honor, best, special } } }
     levels: {},
     settings: { muted: false, vibrate: true },
@@ -22,6 +24,8 @@ export function normalizeProfile(p) {
   return {
     ...e, ...p,
     upgrades: { ...e.upgrades, ...(p.upgrades || {}) },
+    ship: SHIPS[p.ship] ? p.ship : 'monotros',
+    ships: { ...e.ships, ...(p.ships || {}) },
     levels: p.levels || {},
     settings: { ...e.settings, ...(p.settings || {}) },
     stats: { ...e.stats, ...(p.stats || {}) },
@@ -107,11 +111,27 @@ export function buyUpgrade(profile, key) {
   return true;
 }
 
-/** Yükseltmelerin oyun içi etkileri. */
+// ---- gemiler ----
+export function currentShip(profile) { return SHIPS[profile.ship] || SHIPS.monotros; }
+export function ownsShip(profile, id) { return !!profile.ships[id]; }
+export function canBuyShip(profile, id) { const s = SHIPS[id]; return !!s && !ownsShip(profile, id) && profile.coins >= s.price; }
+export function buyShip(profile, id) {
+  if (!canBuyShip(profile, id)) return false;
+  profile.coins -= SHIPS[id].price; profile.ships[id] = true; profile.ship = id; profile.updatedAt = Date.now();
+  return true;
+}
+export function selectShip(profile, id) { if (!ownsShip(profile, id)) return false; profile.ship = id; profile.updatedAt = Date.now(); return true; }
+
+/** Yükseltmelerin ve seçili geminin oyun içi etkileri. */
 export function upgradeEffects(profile) {
   const u = profile.upgrades;
+  const ship = currentShip(profile);
   return {
-    speedMult: 1 + 0.08 * u.engine,
+    ship,
+    speedMult: (1 + 0.08 * u.engine) * ship.speed,
+    armorMax: ship.armor + (u.armor || 0),
+    deflectors: ship.deflectors + (u.deflector || 0),
+    deflectorRegen: (u.deflector || 0) >= 3 ? 14 : MISSILE.REGEN_BASE,
     startShields: u.shield >= 3 ? 2 : (u.shield >= 1 ? 1 : 0),
     shieldRegen: u.shield >= 2 ? 30 : 0,       // sn sonra kalkan yenilenir
     laserBonus: 3 * u.laser,
@@ -130,6 +150,8 @@ export function mergeProfiles(a, b) {
   out.coins = Math.max(a.coins, b.coins);
   out.hiScore = Math.max(a.hiScore, b.hiScore);
   for (const k in out.upgrades) out.upgrades[k] = Math.max(a.upgrades[k] || 0, b.upgrades[k] || 0);
+  out.ships = { ...a.ships, ...b.ships };
+  if (!out.ships[out.ship]) out.ship = 'monotros';
   for (const src of [a, b]) for (const L in src.levels) {
     out.levels[L] = out.levels[L] || { parkurs: {} };
     for (const p in src.levels[L].parkurs) {

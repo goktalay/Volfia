@@ -1,5 +1,5 @@
 // VOLFAI - oyun durumu ve güncelleme mantığı
-import { GRID_W, GRID_H, CELL, CLEAR_PERCENT, BASE_PLAYER_SPEED, SPEED_BOOST_MULT, FUSE_SPEED_RATIO, LIVES_START, POWERUPS, SCORE, COIN } from './config.js';
+import { GRID_W, GRID_H, CELL, CLEAR_PERCENT, BASE_PLAYER_SPEED, SPEED_BOOST_MULT, FUSE_SPEED_RATIO, LIVES_START, POWERUPS, SCORE, COIN, MISSILE, TIMER } from './config.js';
 import { Grid } from './grid.js';
 import { parkurDef, parkurCount, mulberry32 } from './levels.js';
 import { upgradeEffects, recordParkur, addCoins } from './profile.js';
@@ -23,9 +23,9 @@ export class Game {
     this.shake = 0;
     this.def = null;
     this.bosses = [];
-    this.smalls = []; this.shots = []; this.beams = []; this.coins = [];
+    this.smalls = []; this.shots = []; this.beams = []; this.coins = []; this.missiles = [];
     this.powers = { S: 0, T: 0, L: 0 };
-    this.shields = 0;
+    this.shields = 0; this.armor = 0; this.deflectors = 0;
     this.fuse = { active: false, idx: 0 };
   }
   get profile() { return this.account.profile; }
@@ -58,6 +58,12 @@ export class Game {
     this.powers = { S: 0, T: 0, L: 0 };
     this.shields = fx.startShields;
     this.shieldRegenT = fx.shieldRegen;
+    this.armor = fx.armorMax;
+    this.deflectors = fx.deflectors;
+    this.deflRegenT = fx.deflectorRegen;
+    this.missiles = [];
+    this.lastTick = -1;
+    this.overtime = 0;
     this.superWeapon = false;
     this.allBlocksBonusGiven = false;
     this.laserCooldown = 0;
@@ -127,7 +133,25 @@ export class Game {
     const p = this.player;
     if (this.timeLeft > 0) {
       this.timeLeft -= dt;
-      if (this.timeLeft <= 0) { this.timeLeft = 0; this.hurry = true; this.sfx.hurry(); this.emit('hurry'); this.floatText(GRID_W / 2, GRID_H / 2, 'ACELE ET!', '#ff5d5d', 2.2); }
+      const sec = Math.ceil(this.timeLeft);
+      if (this.timeLeft <= TIMER.WARN_AT && sec !== this.lastTick) {
+        this.lastTick = sec;
+        if (sec > 0) { this.sfx.tick(sec <= 3); this.emit('timewarn', { sec }); }
+      }
+      if (this.timeLeft <= 0) {
+        this.timeLeft = 0;
+        this.overtime++;
+        this.hurry = true; this.sfx.hurry(); this.emit('hurry');
+        this.floatText(GRID_W / 2, GRID_H / 2 - 6, 'SÜRE DOLDU!', '#ff5d5d', 2.2);
+        this.takeHit('timeout', true);
+        if (this.state === STATE.PLAY) { this.timeLeft = TIMER.OVERTIME; this.lastTick = -1; this.floatText(GRID_W / 2, GRID_H / 2 + 4, `+${TIMER.OVERTIME} SN EK SÜRE`, '#ffd23f', 2.2); }
+        else this.pendingOvertime = true;
+      }
+    }
+    // saptırıcı dolumu
+    if (this.deflectors < this.fx.deflectors) {
+      this.deflRegenT -= dt;
+      if (this.deflRegenT <= 0) { this.deflectors++; this.deflRegenT = this.fx.deflectorRegen; this.floatText(p.x, p.y - 3, 'SAPTIRICI HAZIR', '#b48cff', 1.0); this.emit('powers'); }
     }
     for (const k of ['S', 'T', 'L']) if (this.powers[k] > 0) { this.powers[k] -= dt; if (this.powers[k] <= 0) { this.powers[k] = 0; if (k === 'L') this.superWeapon = false; this.emit('powers'); } }
     if (p.invuln > 0) p.invuln -= dt;
@@ -147,6 +171,7 @@ export class Game {
       if (this.state !== STATE.PLAY) return;
       this.updateSmalls(dt * spd);
       this.updateShots(dt * spd);
+      this.updateMissiles(dt * spd);
     }
     this.updateBeams(dt);
     this.updateFuse(dt);
@@ -239,6 +264,7 @@ export class Game {
       }
     }
     this.shots = this.shots.filter(sh => g.isEmpty(Math.floor(sh.x), Math.floor(sh.y)));
+    this.missiles = this.missiles.filter(m => g.isEmpty(Math.floor(m.x), Math.floor(m.y)));
     // kuşatılan coin'ler toplanır
     for (const c of this.coins) if (!g.isEmpty(Math.floor(c.x), Math.floor(c.y))) this.collectCoin(c);
     this.coins = this.coins.filter(c => !c.taken);
@@ -356,7 +382,8 @@ export class Game {
         const p = this.player;
         const ang = Math.atan2((p.y + 0.5) - b.y, (p.x + 0.5) - b.x) + (this.rng() - 0.5) * 0.3;
         const sp = 22 + this.L * 0.8;
-        this.shots.push({ x: b.x + Math.cos(ang) * (b.r + 0.5), y: b.y + Math.sin(ang) * (b.r + 0.5), vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: 6 });
+        if (this.L >= MISSILE.FROM_LEVEL && p.drawing && this.rng() < Math.min(0.75, 0.25 + this.L * 0.02)) this.fireMissile(b, ang);
+        else this.shots.push({ x: b.x + Math.cos(ang) * (b.r + 0.5), y: b.y + Math.sin(ang) * (b.r + 0.5), vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: 6 });
       }
     }
     const p = this.player;
@@ -380,6 +407,48 @@ export class Game {
       if (this.rng() < dt * 0.4) { const a = Math.atan2(s.vy, s.vx) + (this.rng() - 0.5) * 1.2; s.vx = Math.cos(a) * s.speed; s.vy = Math.sin(a) * s.speed; }
       if (p.drawing && Math.abs(s.x - (p.x + 0.5)) < 1 && Math.abs(s.y - (p.y + 0.5)) < 1) { this.die(); return; }
     }
+  }
+
+  // ---------------- güdümlü füzeler & saptırıcılar ----------------
+  fireMissile(b, ang) {
+    const t = Math.min(1, (this.L - MISSILE.FROM_LEVEL) / 20);
+    const sp = MISSILE.SPEED_MIN + (MISSILE.SPEED_MAX - MISSILE.SPEED_MIN) * t;
+    // oyuncunun arkasından gelsin: hedefin ters yönünden değil, boss'tan çıkar ama ilk yönü oyuncunun gidiş yönünün tersi
+    const [fdx, fdy] = DIR_VEC[this.player.face] || [0, -1];
+    const a0 = Math.atan2(-fdy, -fdx) + (this.rng() - 0.5) * 0.8;
+    this.missiles.push({ x: b.x + Math.cos(ang) * (b.r + 0.5), y: b.y + Math.sin(ang) * (b.r + 0.5), ang: a0, speed: sp, turn: MISSILE.TURN_MIN + (MISSILE.TURN_MAX - MISSILE.TURN_MIN) * t, life: MISSILE.LIFE, trail: [] });
+    this.sfx.missile();
+  }
+
+  updateMissiles(dt) {
+    const g = this.grid, p = this.player;
+    const px = p.x + 0.5, py = p.y + 0.5;
+    for (const m of this.missiles) {
+      m.life -= dt;
+      // güdüm: oyuncu çiziyorsa oyuncuya, değilse hattın başına/boşluğa doğru sürüklen
+      if (p.drawing) {
+        const want = Math.atan2(py - m.y, px - m.x);
+        let d = want - m.ang; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2;
+        m.ang += Math.max(-m.turn * dt, Math.min(m.turn * dt, d));
+      }
+      m.x += Math.cos(m.ang) * m.speed * dt; m.y += Math.sin(m.ang) * m.speed * dt;
+      m.trail.push([m.x, m.y]); if (m.trail.length > 8) m.trail.shift();
+      const cx = Math.floor(m.x), cy = Math.floor(m.y);
+      const v = g.get(cx, cy);
+      if (v === CELL.TRAIL) { this.igniteFuse(cx, cy); m.life = 0; this.burst(m.x, m.y, '#ff5d5d', 10); continue; }
+      if (v !== CELL.EMPTY) { m.life = 0; this.burst(m.x, m.y, '#8899aa', 6); continue; }
+      const dist = Math.hypot(m.x - px, m.y - py);
+      // saptırıcı: menzile giren füzeyi imha eder (yalnız çizim halindeyken tehdit var)
+      if (p.drawing && this.deflectors > 0 && dist < MISSILE.DEFLECT_RANGE) {
+        this.deflectors--; if (this.deflRegenT <= 0) this.deflRegenT = this.fx.deflectorRegen;
+        m.life = 0; this.burst(m.x, m.y, '#b48cff', 18); this.deflectFx = { x: px, y: py, t: 0.35 };
+        this.floatText(px, py - 3, 'SAPTIRILDI', '#b48cff', 0.9); this.sfx.deflect(); this.emit('powers');
+        continue;
+      }
+      if (p.drawing && dist < 0.9) { m.life = 0; this.burst(m.x, m.y, '#ff5d5d', 16); this.takeHit('missile'); if (this.state !== STATE.PLAY) return; }
+    }
+    this.missiles = this.missiles.filter(m => m.life > 0);
+    if (this.deflectFx) { this.deflectFx.t -= dt; if (this.deflectFx.t <= 0) this.deflectFx = null; }
   }
 
   // ---------------- boss mermileri ----------------
@@ -464,12 +533,23 @@ export class Game {
   }
 
   // ---------------- ölüm / parkur sonu ----------------
-  die() {
+  die() { this.takeHit('contact'); }
+
+  /** Darbe al: önce P kalkanı, sonra gövde zırhı, sonra can. force: dokunulmazlığı yok sayar (süre dolması). */
+  takeHit(source = 'contact', force = false) {
     const p = this.player;
-    if (this.state !== STATE.PLAY || p.invuln > 0) return;
+    if (this.state !== STATE.PLAY || (p.invuln > 0 && !force)) return;
     if (this.shields > 0) {
       this.shields--; p.invuln = 1.5; this.emit('powers');
       this.floatText(p.x, p.y - 3, 'KALKAN!', '#9bff8a', 1.2); this.burst(p.x + 0.5, p.y + 0.5, '#9bff8a', 24); this.sfx.bossHit();
+      this.fuse.active = false; p.idle = 0;
+      return;
+    }
+    if (this.armor > 0) {
+      this.armor--; p.invuln = 1.5; this.shake = 0.25; this.emit('powers');
+      this.floatText(p.x, p.y - 3, `ZIRH ${this.armor}/${this.fx.armorMax}`, '#ffa94d', 1.2); this.burst(p.x + 0.5, p.y + 0.5, '#ffa94d', 20); this.sfx.hit();
+      if (this.profile.settings.vibrate && navigator.vibrate) { try { navigator.vibrate(40); } catch (e) { /* yok say */ } }
+      this.fuse.active = false; p.idle = 0;
       return;
     }
     this.burst(p.x + 0.5, p.y + 0.5, '#5de4ff', 40);
@@ -491,7 +571,10 @@ export class Game {
     if (this.lives < 0) { this.gameOver(); return; }
     if (p.start) { p.x = p.start.x; p.y = p.start.y; }
     p.invuln = 2.5; p.idle = 0; p.acc = 0;
-    this.shots = [];
+    this.shots = []; this.missiles = [];
+    this.armor = this.fx.armorMax;
+    if (this.pendingOvertime) { this.pendingOvertime = false; this.timeLeft = TIMER.OVERTIME; this.lastTick = -1; }
+    this.emit('powers');
     this.setState(STATE.PLAY);
   }
 

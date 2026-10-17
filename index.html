@@ -24,7 +24,7 @@
         <div class="hud-box right"><span class="lbl">HEPCOIN</span><span id="hud-coins" class="val coin">0</span></div>
       </div>
       <div class="hud-row small">
-        <div class="hud-box"><span id="lives" class="lives"></span></div>
+        <div class="hud-box"><span><span id="lives" class="lives"></span><span id="armor" class="armor-pips"></span><span id="defl" class="defl-pips"></span></span></div>
         <div class="hud-box center"><span id="levelname" class="lvl">BÖLÜM 1</span></div>
         <div class="hud-box right"><span id="timer" class="timer">150</span></div>
       </div>
@@ -62,7 +62,9 @@
         <li><b>%80</b> alanı ele geçir, parkuru bitir. Fazlası onur puanı ve bonus.</li>
         <li><b>Mavi halka</b> varken güvendesin. Çizerken halka kalkar, düşman hatta değerse fitil yanar.</li>
         <li><b>Kutuları kuşat:</b> S hız, T dondur, L lazer, P kalkan, E ek can, B bonus.</li>
-        <li><b>HEPCOIN</b> parkurda rastgele düşer; hattınla üstünden geç ya da kuşat. Hangar'da gemini güçlendir.</li>
+        <li><b>HEPCOIN</b> parkurda rastgele düşer; hattınla üstünden geç ya da kuşat. Hangar'da yeni gemi al, zırh ve saptırıcı geliştir.</li>
+        <li><b>Zırh:</b> kalkan yokken darbeyi gövde emer; dayanım bitince can gider. <b>Saptırıcılar</b> arkadan gelen güdümlü füzeleri imha eder.</li>
+        <li><b>Süre:</b> geri sayar, son 10 saniyede uyarır. Süre dolunca can gider ve 30 sn ek süre verilir.</li>
         <li><b>Onur puanı</b> topla: her bölümün parkurlarını yeterli onurla bitirince sonraki bölüm açılır.</li>
       </ul>
       <p class="kbd">Klavye: Ok tuşları / WASD, Boşluk = lazer, P = duraklat</p>
@@ -77,7 +79,7 @@
       <div id="levels-honor" class="honor-chip">★ 0</div>
     </div>
     <div class="progress-line"><div id="levels-progress"></div></div>
-    <div id="level-carousel" class="carousel"></div>
+    <div class="carousel-wrap"><button class="car-arrow left" id="car-left" aria-label="Önceki bölüm">‹</button><div id="level-carousel" class="carousel"></div><button class="car-arrow right" id="car-right" aria-label="Sonraki bölüm">›</button></div>
     <div id="level-dots" class="dots"></div>
     <div id="parkur-panel" class="parkur-panel">
       <div class="parkur-head"><span id="parkur-title">BÖLÜM 1</span><span id="parkur-honor">ONUR 0 / 75</span></div>
@@ -94,6 +96,9 @@
       <div id="hangar-coins" class="coin-chip">0</div>
     </div>
     <div class="ship-preview"><canvas id="ship-canvas" width="240" height="140"></canvas><div id="ship-stats" class="ship-stats"></div></div>
+    <div class="hangar-sub">GEMİLER</div>
+    <div id="ship-list" class="ship-list"></div>
+    <div class="hangar-sub">YÜKSELTMELER</div>
     <div id="upgrade-list" class="upgrade-list"></div>
   </div>
 

@@ -1,12 +1,12 @@
 // VOLFAI - giriş noktası: döngü, HUD, ekranlar (bölümler, hangar, ayarlar)
 import { Game, STATE } from './game.js';
-import { Renderer } from './render.js';
+import { Renderer, drawShipShape } from './render.js';
 import { Input } from './input.js';
 import { Sfx } from './audio.js';
 import { Account } from './account.js';
-import { POWERUPS, CLEAR_PERCENT, LEVEL_COUNT, UPGRADES, MASTERTOOL } from './config.js';
+import { POWERUPS, CLEAR_PERCENT, LEVEL_COUNT, UPGRADES, MASTERTOOL, SHIPS, TIMER } from './config.js';
 import { levelInfo, parkurCount, totalParkurs, drawLevelArt } from './levels.js';
-import { isLevelUnlocked, isParkurUnlocked, isParkurCleared, parkurResult, levelHonor, levelHonorRequired, totalHonor, highestUnlockedLevel, levelClearedCount, upgradeCost, buyUpgrade, upgradeEffects } from './profile.js';
+import { isLevelUnlocked, isParkurUnlocked, isParkurCleared, parkurResult, levelHonor, levelHonorRequired, totalHonor, highestUnlockedLevel, levelClearedCount, upgradeCost, buyUpgrade, upgradeEffects, currentShip, ownsShip, canBuyShip, buyShip, selectShip } from './profile.js';
 
 const $ = id => document.getElementById(id);
 const sfx = new Sfx();
@@ -16,6 +16,11 @@ const renderer = new Renderer($('game'), $('stick'));
 const input = new Input(document.body, $('btn-fire'));
 window.__volfai = { game, input, renderer, account };
 
+const tap = (el, fn) => {
+  let lastTouch = 0;
+  el.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); lastTouch = Date.now(); sfx.init(); sfx.resume(); fn(); }, { passive: false });
+  el.addEventListener('click', e => { e.preventDefault(); if (Date.now() - lastTouch < 700) return; sfx.init(); sfx.resume(); fn(); });
+};
 const screens = { title: $('screen-title'), levels: $('screen-levels'), hangar: $('screen-hangar'), settings: $('screen-settings'), intro: $('screen-intro'), clear: $('screen-clear'), pause: $('screen-pause'), over: $('screen-over') };
 let currentScreen = 'title', prevScreen = 'title';
 function showScreen(name) {
@@ -48,7 +53,14 @@ function updateHud() {
   pe.innerHTML = `${pct}<small>%</small>`;
   pe.classList.toggle('done', pct >= CLEAR_PERCENT);
   $('lives').textContent = '▲'.repeat(Math.max(0, game.lives));
-  const te = $('timer'); te.textContent = Math.ceil(game.timeLeft || 0); te.classList.toggle('hurry', !!game.hurry);
+  const te = $('timer'); const tl = Math.ceil(game.timeLeft || 0); te.textContent = tl; te.classList.toggle('hurry', !!game.hurry && tl === 0);
+  te.classList.toggle('warn', tl > 0 && tl <= TIMER.WARN_AT); te.classList.toggle('last', tl > 0 && tl <= 3);
+  if (game.fx) {
+    const am = game.fx.armorMax, dm = game.fx.deflectors;
+    const ak = `${game.armor}/${am}`, dk = `${game.deflectors}/${dm}`;
+    if ($('armor').dataset.k !== ak) { $('armor').dataset.k = ak; $('armor').innerHTML = Array.from({ length: am }, (_, i) => `<i class="${i < game.armor ? '' : 'off'}"></i>`).join(''); }
+    if ($('defl').dataset.k !== dk) { $('defl').dataset.k = dk; $('defl').innerHTML = Array.from({ length: dm }, (_, i) => `<i class="${i < game.deflectors ? '' : 'off'}"></i>`).join(''); }
+  }
   if (game.def) $('levelname').textContent = `B${game.def.L} · P${game.def.p}/${game.def.n} · ${game.def.name}`;
   let html = '';
   for (const k of ['S', 'T', 'L']) if (game.powers[k] > 0) {
@@ -155,11 +167,30 @@ $('level-carousel').addEventListener('scroll', () => {
   }, 80);
 }, { passive: true });
 
+function scrollToLevel(L, smooth = true) {
+  const el = $('level-carousel').querySelector(`[data-level="${L}"]`);
+  if (el) el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', inline: 'center', block: 'nearest' });
+}
+tap($('car-left'), () => { if (selLevel > 1) { selectLevel(selLevel - 1); scrollToLevel(selLevel); } });
+tap($('car-right'), () => { if (selLevel < LEVEL_COUNT) { selectLevel(selLevel + 1); scrollToLevel(selLevel); } });
+// fare ile sürükleyerek kaydırma (masaüstü) + dikey tekerleği yataya çevir
+(() => {
+  const car = $('level-carousel');
+  let down = false, sx = 0, sl = 0, moved = false;
+  car.addEventListener('mousedown', e => { down = true; moved = false; sx = e.clientX; sl = car.scrollLeft; car.classList.add('dragging'); e.preventDefault(); });
+  window.addEventListener('mousemove', e => { if (!down) return; const dx = e.clientX - sx; if (Math.abs(dx) > 4) moved = true; car.scrollLeft = sl - dx; });
+  window.addEventListener('mouseup', () => { if (!down) return; down = false; car.classList.remove('dragging'); if (moved) { setTimeout(() => scrollToLevel(selLevel), 120); } });
+  car.addEventListener('click', e => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
+  car.addEventListener('wheel', e => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { e.preventDefault(); car.scrollLeft += e.deltaY; } }, { passive: false });
+  $('level-dots').addEventListener('click', e => { const i = [...$('level-dots').children].indexOf(e.target); if (i >= 0) { selectLevel(i + 1); scrollToLevel(i + 1); } });
+})();
+
 function selectLevel(L, silent) {
   selLevel = L;
   const prof = account.profile, info = levelInfo(L), n = info.parkurs;
   for (const el of $('level-carousel').children) el.classList.toggle('active', +el.dataset.level === L);
   $('level-dots').innerHTML = Array.from({ length: LEVEL_COUNT }, (_, i) => `<i class="${i + 1 === L ? 'on' : (levelClearedCount(prof, i + 1) === levelInfo(i + 1).parkurs ? 'done' : '')}"></i>`).join('');
+  $('car-left').disabled = L <= 1; $('car-right').disabled = L >= LEVEL_COUNT;
   $('parkur-title').textContent = `BÖLÜM ${L} · ${info.name}`;
   $('parkur-honor').textContent = `ONUR ${levelHonor(prof, L)} / ${levelHonorRequired(L)}`;
   // varsayılan parkur: ilk bitirilmemiş açık parkur
@@ -191,8 +222,22 @@ function renderHangar() {
   const prof = account.profile;
   $('hangar-coins').textContent = fmt(prof.coins);
   const fx = upgradeEffects(prof);
-  $('ship-stats').innerHTML = `Hız <b>×${fx.speedMult.toFixed(2)}</b><br>Can <b>${3 + fx.extraLives}</b> · Kalkan <b>${fx.startShields}</b><br>Lazer <b>+${fx.laserBonus} sn</b> · Süre <b>+${fx.extraTime} sn</b><br>Coin <b>×${fx.coinValueMult.toFixed(1)}</b>`;
-  drawShip($('ship-canvas'), prof.upgrades);
+  $('ship-stats').innerHTML = `<b style="color:${fx.ship.glow}">${fx.ship.name}</b><br>Hız <b>×${fx.speedMult.toFixed(2)}</b> · Zırh <b>${fx.armorMax}</b><br>Saptırıcı <b>${fx.deflectors}</b> · Kalkan <b>${fx.startShields}</b><br>Can <b>${3 + fx.extraLives}</b> · Lazer <b>+${fx.laserBonus} sn</b><br>Süre <b>+${fx.extraTime} sn</b> · Coin <b>×${fx.coinValueMult.toFixed(1)}</b>`;
+  drawShip($('ship-canvas'), prof.upgrades, prof.ship);
+  const sl = $('ship-list'); sl.innerHTML = '';
+  for (const id in SHIPS) {
+    const sh = SHIPS[id], owned = ownsShip(prof, id), cur = prof.ship === id;
+    const el = document.createElement('div'); el.className = 'ship' + (cur ? ' sel' : '');
+    const cv = document.createElement('canvas'); cv.width = 200; cv.height = 100;
+    el.appendChild(cv);
+    el.insertAdjacentHTML('beforeend', `<div class="nm" style="color:${sh.glow}">${sh.name}</div><div class="st">Hız <b>×${sh.speed.toFixed(2)}</b> · Zırh <b>${sh.armor}</b> · Saptırıcı <b>${sh.deflectors}</b><br>${sh.desc}</div>`);
+    const b = document.createElement('button');
+    if (cur) { b.textContent = 'SEÇİLİ'; b.className = 'cur'; b.disabled = true; }
+    else if (owned) { b.textContent = 'SEÇ'; b.className = 'use'; b.addEventListener('click', () => { selectShip(prof, id); account.save(true); sfx.tap(); renderHangar(); }); }
+    else { b.textContent = `${sh.price} H`; b.disabled = !canBuyShip(prof, id); b.addEventListener('click', () => { if (buyShip(prof, id)) { account.save(true); sfx.buy(); renderHangar(); } }); }
+    el.appendChild(b); sl.appendChild(el);
+    const c = cv.getContext('2d'); c.save(); c.translate(100, 52); c.shadowColor = sh.glow; c.shadowBlur = 18; c.fillStyle = sh.color; drawShipShape(c, id, 14); c.shadowBlur = 0; c.fillStyle = sh.glow; c.beginPath(); c.arc(0, 0, 5, 0, Math.PI * 2); c.fill(); c.restore();
+  }
   const list = $('upgrade-list'); list.innerHTML = '';
   for (const key in UPGRADES) {
     const u = UPGRADES[key], lvl = prof.upgrades[key] || 0, cost = upgradeCost(prof, key);
@@ -204,13 +249,18 @@ function renderHangar() {
     el.appendChild(b); list.appendChild(el);
   }
 }
-function drawShip(cv, up) {
+function drawShip(cv, up, shipId) {
   const c = cv.getContext('2d'); const W = cv.width, H = cv.height; c.clearRect(0, 0, W, H);
+  const sh = SHIPS[shipId] || SHIPS.monotros;
   c.save(); c.translate(W / 2, H / 2);
-  c.shadowColor = '#5de4ff'; c.shadowBlur = 24;
+  c.shadowColor = sh.glow; c.shadowBlur = 24;
   // gövde
-  c.fillStyle = '#d8f7ff'; c.beginPath(); c.moveTo(0, -46); c.lineTo(34, 36); c.lineTo(0, 18); c.lineTo(-34, 36); c.closePath(); c.fill();
+  c.fillStyle = sh.color; drawShipShape(c, shipId, 28);
   c.shadowBlur = 0;
+  // zırh plakaları
+  for (let i = 0; i < sh.armor + (up.armor || 0); i++) { const aa = Math.PI / 2 + (i - (sh.armor + (up.armor || 0) - 1) / 2) * 0.5; c.fillStyle = '#ffa94d'; c.fillRect(Math.cos(aa) * 54 - 4, Math.sin(aa) * 54 - 4, 8, 8); }
+  // saptırıcılar
+  for (let i = 0; i < sh.deflectors + (up.deflector || 0); i++) { const ox = (i - (sh.deflectors + (up.deflector || 0) - 1) / 2) * 16; c.fillStyle = 'rgba(180,140,255,0.9)'; c.beginPath(); c.moveTo(ox, 40); c.lineTo(ox - 6, 52); c.lineTo(ox + 6, 52); c.closePath(); c.fill(); }
   // motor alevleri (engine seviyesi)
   for (let i = 0; i <= up.engine; i++) { c.fillStyle = `rgba(255,${160 - i * 30},60,${0.5 + i * 0.15})`; c.beginPath(); c.moveTo(-10 + i * 2, 30); c.lineTo(0, 52 + up.engine * 8 + i * 6); c.lineTo(10 - i * 2, 30); c.closePath(); c.fill(); }
   // kalkan halkaları
@@ -256,11 +306,6 @@ $('set-vibrate').addEventListener('change', e => { account.profile.settings.vibr
 $('btn-reset').addEventListener('click', () => { if (confirm('Tüm ilerleme, HEPCOIN ve yükseltmeler silinecek. Emin misin?')) { account.resetProgress(); selLevel = null; renderSettings(); } });
 
 // ===== düğmeler =====
-const tap = (el, fn) => {
-  let lastTouch = 0;
-  el.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); lastTouch = Date.now(); sfx.init(); sfx.resume(); fn(); }, { passive: false });
-  el.addEventListener('click', e => { e.preventDefault(); if (Date.now() - lastTouch < 700) return; sfx.init(); sfx.resume(); fn(); });
-};
 tap($('btn-start'), () => { selLevel = null; showScreen('levels'); });
 tap($('btn-hangar-t'), () => showScreen('hangar'));
 tap($('btn-settings-t'), () => showScreen('settings'));

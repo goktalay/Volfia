@@ -18,6 +18,15 @@ ekrana eklenebilir, çevrimdışı oynanır.
 - **Hangar:** İyon motoru, kalkan jeneratörü, lazer çekirdeği, yedek güç hücresi, zaman dilatörü,
   coin mıknatısı. Her biri 3 seviye.
 - **Koruma halkası:** kenardayken gemiyi saran mavi halka; çizime geçince kaybolur.
+- **Süre:** her parkurda geri sayım; son 10 saniyede tik sesi ve ekran uyarısı. Süre dolunca bir
+  darbe alınır (kalkan/zırh/can) ve 30 sn ek süre verilir, düşmanlar hızlanır.
+- **Gemiler:** Monotros (dengeli), Kırlangıç (hızlı, zayıf zırh), Kale (yavaş, ağır zırh),
+  Hayalet (3 saptırıcı). HEPCOIN ile alınır, Hangar'dan seçilir.
+- **Zırh:** kalkan yokken darbeyi gövde dayanımı emer; sıfırlanınca can gider, yeni canla dolar.
+  Zırh Plakası yükseltmesiyle artar.
+- **Güdümlü füzeler ve saptırıcılar:** 4. bölümden itibaren boss, çizim halindeki gemiyi arkadan
+  takip eden füzeler atar. Saptırıcılar menzile giren füzeyi imha eder, zamanla yeniden dolar;
+  Saptırıcı yükseltmesiyle sayı ve dolum hızı artar.
 - **Hesap:** misafir (yerel) veya Mastertool hesabı. API ayrıntıları `docs/MASTERTOOL_API.md`.
 
 ## Oynanış

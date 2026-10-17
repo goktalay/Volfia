@@ -62,3 +62,19 @@ test('profil birleştirme en iyi değerleri korur', () => {
   assert.equal(m.levels[1].parkurs[1].honor, 25);
   assert.equal(m.levels[1].parkurs[2].honor, 10);
 });
+
+test('gemiler: satın alma, seçme ve etkiler', async () => {
+  const { currentShip, ownsShip, canBuyShip, buyShip, selectShip, upgradeEffects, emptyProfile, addCoins } = await import('../js/profile.js');
+  const p = emptyProfile();
+  assert.equal(currentShip(p).name, 'MONOTROS');
+  assert.ok(!canBuyShip(p, 'kale'));
+  addCoins(p, 1000);
+  assert.ok(buyShip(p, 'kale')); assert.equal(p.ship, 'kale'); assert.ok(ownsShip(p, 'kale'));
+  let fx = upgradeEffects(p);
+  assert.equal(fx.armorMax, 4); assert.equal(fx.deflectors, 2); assert.ok(fx.speedMult < 0.9);
+  p.upgrades.armor = 2; p.upgrades.deflector = 3;
+  fx = upgradeEffects(p);
+  assert.equal(fx.armorMax, 6); assert.equal(fx.deflectors, 5); assert.equal(fx.deflectorRegen, 14);
+  assert.ok(selectShip(p, 'monotros')); assert.ok(!selectShip(p, 'hayalet'));
+  assert.equal(buyShip(p, 'kale'), false); // zaten sahip
+});

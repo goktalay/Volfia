@@ -68,6 +68,31 @@ export const UPGRADES = {
   cells:   { name: 'YEDEK GÜÇ HÜCRESİ', desc: 'Başlangıç canı +1 / seviye',        icon: '♥', costs: [100, 220, 400] },
   time:    { name: 'ZAMAN DİLATÖRÜ',    desc: 'Parkur süresi +15 sn / seviye',     icon: '⏱', costs: [50, 120, 240] },
   magnet:  { name: 'COIN MIKNATISI',    desc: 'HEPCOIN daha sık ve daha değerli düşer', icon: '◎', costs: [90, 200, 360] },
+  armor:   { name: 'ZIRH PLAKASI',      desc: 'Gövde dayanımı +1 / seviye (kalkan yokken darbe emer)', icon: '▣', costs: [90, 190, 360] },
+  deflector: { name: 'SAPTIRICI',       desc: 'Füze saptırıcı +1 / seviye, 3. seviyede daha hızlı dolum', icon: '◇', costs: [110, 230, 420] },
+};
+
+// Gemiler: hız çarpanı, gövde dayanımı (zırh), saptırıcı sayısı, fiyat (HEPCOIN)
+export const SHIPS = {
+  monotros: { name: 'MONOTROS',  desc: 'Dengeli keşif gemisi. Volfai filosunun klasiği.', speed: 1.00, armor: 2, deflectors: 1, price: 0,   color: '#d8f7ff', glow: '#5de4ff' },
+  kirlangic: { name: 'KIRLANGIÇ', desc: 'Çok hızlı, ince gövde. Hata affetmez.',          speed: 1.22, armor: 1, deflectors: 1, price: 250, color: '#ffe9a8', glow: '#ffd23f' },
+  kale:     { name: 'KALE',      desc: 'Ağır zırhlı, yavaş. Darbelere dayanır.',            speed: 0.86, armor: 4, deflectors: 2, price: 320, color: '#c9ffd0', glow: '#9bff8a' },
+  hayalet:  { name: 'HAYALET',   desc: 'Üç saptırıcı, orta hız. Füzelere karşı en güvenli.', speed: 1.06, armor: 2, deflectors: 3, price: 450, color: '#e6d1ff', glow: '#b48cff' },
+};
+
+// Güdümlü füze ve saptırıcı
+export const MISSILE = {
+  FROM_LEVEL: 4,        // bu bölümden itibaren boss füze atar
+  SPEED_MIN: 16, SPEED_MAX: 30,
+  TURN_MIN: 1.6, TURN_MAX: 3.4,   // rad/sn dönüş hızı
+  LIFE: 7,
+  DEFLECT_RANGE: 4.5,   // hücre; saptırıcı bu mesafede füzeyi imha eder
+  REGEN_BASE: 25,       // sn; saptırıcı dolum süresi (seviye 3'te 14)
+};
+
+export const TIMER = {
+  WARN_AT: 10,          // son 10 sn: tik sesi + uyarı
+  OVERTIME: 30,         // süre bitince can gider, bu kadar ek süre verilir (acele modu)
 };
 
 // Mastertool hesap bütünleşmesi (sözleşme v1: prelogin + PBKDF2 auth_hash + login)
@@ -77,7 +102,7 @@ const onMastertool = typeof location !== 'undefined' && /(^|\.)mastertool\.downl
 export const MASTERTOOL = {
   API_BASE: onMastertool ? location.origin : '',   // ör. 'https://mastertool.download'
   APP_CODE: 'vf',                                   // VOLFAI uygulama kodu → /api/vf/...
-  APP_VERSION: '0.2.0',
+  APP_VERSION: '0.3.0',
   REGISTER_URL: 'https://mastertool.download/kayit?app=vf',
   LOGIN_URL: 'https://mastertool.download/giris?app=vf',
 };

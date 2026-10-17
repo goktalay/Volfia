@@ -1,5 +1,5 @@
 // VOLFAI - çizim katmanı
-import { GRID_W, GRID_H, CELL, POWERUPS } from './config.js';
+import { GRID_W, GRID_H, CELL, POWERUPS, TIMER } from './config.js';
 import { drawLevelArt } from './levels.js';
 import { DIR_VEC } from './input.js';
 import { STATE } from './game.js';
@@ -128,6 +128,12 @@ export class Renderer {
       ctx.fillStyle = '#ff6b6b'; ctx.beginPath(); ctx.arc(sh.x * S, sh.y * S, S * 0.7, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(sh.x * S, sh.y * S, S * 0.3, 0, Math.PI * 2); ctx.fill();
     }
+    for (const m of game.missiles) this.drawMissile(ctx, m, S);
+    if (game.deflectFx) {
+      const f = game.deflectFx, k = f.t / 0.35;
+      ctx.strokeStyle = `rgba(180,140,255,${k})`; ctx.lineWidth = S * 0.8;
+      ctx.beginPath(); ctx.arc(f.x * S, f.y * S, S * 4.5 * (1.4 - k * 0.4), 0, Math.PI * 2); ctx.stroke();
+    }
     for (const be of game.beams) {
       const len = S * 3.5, a = Math.atan2(be.vy, be.vx);
       ctx.strokeStyle = be.dmg > 1 ? '#fff' : '#ff5d8f'; ctx.lineWidth = S * (be.dmg > 1 ? 1.2 : 0.7); ctx.lineCap = 'round';
@@ -149,6 +155,21 @@ export class Renderer {
       ctx.strokeText(t.text, t.x * S, t.y * S); ctx.fillStyle = t.color; ctx.fillText(t.text, t.x * S, t.y * S);
     }
     ctx.globalAlpha = 1;
+    // son 10 saniye geri sayım uyarısı
+    if (game.state === STATE.PLAY && game.timeLeft > 0 && game.timeLeft <= TIMER.WARN_AT) {
+      const sec = Math.ceil(game.timeLeft), frac = 1 - (sec - game.timeLeft);
+      const W = this.canvas.width, H = this.canvas.height;
+      ctx.fillStyle = `rgba(255,60,60,${0.10 + 0.08 * Math.sin(this.t * 12)})`;
+      ctx.lineWidth = S * 1.5; ctx.strokeStyle = `rgba(255,70,70,${0.5 + 0.4 * Math.sin(this.t * 12)})`; ctx.strokeRect(S * 0.75, S * 0.75, W - S * 1.5, H - S * 1.5);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.globalAlpha = 0.25 + 0.55 * (1 - frac);
+      ctx.font = `900 ${Math.round(S * (16 + 6 * frac))}px system-ui, sans-serif`;
+      ctx.lineWidth = S * 1.2; ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.strokeText(String(sec), W / 2, H * 0.3);
+      ctx.fillStyle = sec <= 3 ? '#ff4d4d' : '#ffd23f'; ctx.fillText(String(sec), W / 2, H * 0.3);
+      ctx.globalAlpha = 1;
+      ctx.font = `800 ${Math.round(S * 3)}px system-ui, sans-serif`; ctx.fillStyle = '#ff8a8a';
+      ctx.strokeText('SÜRE AZALIYOR', W / 2, H * 0.3 + S * 13); ctx.fillText('SÜRE AZALIYOR', W / 2, H * 0.3 + S * 13);
+    }
     // donma efekti
     if (frozen) { ctx.fillStyle = `rgba(93,228,255,${0.08 + 0.04 * Math.sin(this.t * 10)})`; ctx.fillRect(0, 0, this.canvas.width, this.canvas.height); }
 
@@ -192,11 +213,27 @@ export class Renderer {
     const [dx, dy] = DIR_VEC[p.face] || [0, -1];
     const a = Math.atan2(dy, dx);
     ctx.save(); ctx.translate(x, y); ctx.rotate(a + Math.PI / 2);
-    ctx.shadowColor = p.drawing ? '#ff5d8f' : '#5de4ff'; ctx.shadowBlur = S * 2;
-    ctx.fillStyle = p.drawing ? '#ffd1df' : '#d8f7ff';
-    ctx.beginPath(); ctx.moveTo(0, -S * 1.6); ctx.lineTo(S * 1.2, S * 1.2); ctx.lineTo(0, S * 0.6); ctx.lineTo(-S * 1.2, S * 1.2); ctx.closePath(); ctx.fill();
+    const ship = game.fx?.ship || { color: '#d8f7ff', glow: '#5de4ff' };
+    ctx.shadowColor = p.drawing ? '#ff5d8f' : ship.glow; ctx.shadowBlur = S * 2;
+    ctx.fillStyle = p.drawing ? '#ffd1df' : ship.color;
+    drawShipShape(ctx, game.profile.ship, S);
     ctx.shadowBlur = 0;
-    ctx.fillStyle = p.drawing ? '#ff5d8f' : '#5de4ff'; ctx.beginPath(); ctx.arc(0, 0, S * 0.45, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = p.drawing ? '#ff5d8f' : ship.glow; ctx.beginPath(); ctx.arc(0, 0, S * 0.45, 0, Math.PI * 2); ctx.fill();
+    // zırh göstergesi: gövde çevresinde küçük plakalar
+    for (let i = 0; i < game.armor; i++) { const aa = Math.PI / 2 + (i - (game.armor - 1) / 2) * 0.55; ctx.fillStyle = '#ffa94d'; ctx.fillRect(Math.cos(aa) * S * 1.9 - S * 0.25, Math.sin(aa) * S * 1.9 - S * 0.25, S * 0.5, S * 0.5); }
+    // saptırıcılar: arkada mor üçgenler
+    for (let i = 0; i < game.deflectors; i++) { const ox = (i - (game.deflectors - 1) / 2) * S * 1.1; ctx.fillStyle = 'rgba(180,140,255,0.9)'; ctx.beginPath(); ctx.moveTo(ox, S * 2.2); ctx.lineTo(ox - S * 0.45, S * 2.9); ctx.lineTo(ox + S * 0.45, S * 2.9); ctx.closePath(); ctx.fill(); }
+    ctx.restore();
+  }
+
+  drawMissile(ctx, m, S) {
+    // iz
+    for (let i = 0; i < m.trail.length; i++) { const [tx, ty] = m.trail[i]; ctx.fillStyle = `rgba(255,120,80,${(i / m.trail.length) * 0.5})`; ctx.fillRect(tx * S - S * 0.3, ty * S - S * 0.3, S * 0.6, S * 0.6); }
+    ctx.save(); ctx.translate(m.x * S, m.y * S); ctx.rotate(m.ang);
+    ctx.shadowColor = '#ff5d5d'; ctx.shadowBlur = S * 1.5;
+    ctx.fillStyle = '#ff6b6b'; ctx.beginPath(); ctx.moveTo(S * 1.6, 0); ctx.lineTo(-S * 1.0, -S * 0.7); ctx.lineTo(-S * 0.6, 0); ctx.lineTo(-S * 1.0, S * 0.7); ctx.closePath(); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(S * 0.6, 0, S * 0.3, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
 
@@ -284,4 +321,21 @@ export class Renderer {
     if (d > 44) { dx *= 44 / d; dy *= 44 / d; }
     c.fillStyle = 'rgba(255,255,255,0.75)'; c.beginPath(); c.arc(a.x + dx, a.y + dy, 18, 0, Math.PI * 2); c.fill();
   }
+}
+
+
+/** Gemi silueti (merkez 0,0; burun -y yönünde). Hangar önizlemesi de aynı çizimi kullanır. */
+export function drawShipShape(ctx, id, S) {
+  ctx.beginPath();
+  switch (id) {
+    case 'kirlangic': // ince, uzun, çatal kanat
+      ctx.moveTo(0, -S * 2.2); ctx.lineTo(S * 0.7, S * 0.6); ctx.lineTo(S * 1.5, S * 1.6); ctx.lineTo(S * 0.35, S * 1.0); ctx.lineTo(0, S * 1.4); ctx.lineTo(-S * 0.35, S * 1.0); ctx.lineTo(-S * 1.5, S * 1.6); ctx.lineTo(-S * 0.7, S * 0.6); break;
+    case 'kale': // geniş, köşeli, ağır
+      ctx.moveTo(-S * 0.8, -S * 1.5); ctx.lineTo(S * 0.8, -S * 1.5); ctx.lineTo(S * 1.6, S * 0.2); ctx.lineTo(S * 1.6, S * 1.4); ctx.lineTo(S * 0.6, S * 1.0); ctx.lineTo(-S * 0.6, S * 1.0); ctx.lineTo(-S * 1.6, S * 1.4); ctx.lineTo(-S * 1.6, S * 0.2); break;
+    case 'hayalet': // ok ucu, yarı saydam kanatlar
+      ctx.moveTo(0, -S * 1.9); ctx.lineTo(S * 1.6, S * 1.3); ctx.lineTo(S * 0.5, S * 0.7); ctx.lineTo(0, S * 1.6); ctx.lineTo(-S * 0.5, S * 0.7); ctx.lineTo(-S * 1.6, S * 1.3); break;
+    default: // monotros
+      ctx.moveTo(0, -S * 1.6); ctx.lineTo(S * 1.2, S * 1.2); ctx.lineTo(0, S * 0.6); ctx.lineTo(-S * 1.2, S * 1.2);
+  }
+  ctx.closePath(); ctx.fill();
 }
