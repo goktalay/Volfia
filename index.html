@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#04060d">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="VOLFIA">
+  <meta name="description" content="VOLFIA - Volfied'in dokunmatik yeniden yapımı. Alanı ele geçir, uzaylıları kuşat!">
+  <title>VOLFIA</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="hud">
+      <div class="hud-row">
+        <div class="hud-box"><span class="lbl">SKOR</span><span id="score" class="val">0</span></div>
+        <div class="hud-box center"><span id="percent" class="pct">0<small>%</small></span><span class="lbl">HEDEF %80</span></div>
+        <div class="hud-box right"><span class="lbl">REKOR</span><span id="hiscore" class="val">0</span></div>
+      </div>
+      <div class="hud-row small">
+        <div class="hud-box"><span id="lives" class="lives"></span></div>
+        <div class="hud-box center"><span id="levelname" class="lvl">BÖLÜM 1</span></div>
+        <div class="hud-box right"><span id="timer" class="timer">150</span></div>
+      </div>
+      <div id="powers" class="powers"></div>
+    </header>
+
+    <main id="field">
+      <canvas id="game"></canvas>
+    </main>
+
+    <footer id="controls">
+      <div id="hint" class="hint">Parmağını ekranda sürükle: gemi o yöne gider. Boş alana girince hat çizilir, kenara dönünce alan kapanır.</div>
+      <button id="btn-fire" class="fire hidden" aria-label="Lazer">LAZER</button>
+      <button id="btn-pause" class="icon-btn" aria-label="Duraklat">II</button>
+      <button id="btn-mute" class="icon-btn" aria-label="Ses">♪</button>
+    </footer>
+  </div>
+
+  <canvas id="stick"></canvas>
+
+  <!-- Ekranlar -->
+  <div id="screen-title" class="screen">
+    <div class="logo">VOLFIA</div>
+    <div class="tag">Volfied'in dokunmatik yeniden doğuşu</div>
+    <div class="hi">REKOR <span id="title-hi">0</span></div>
+    <button id="btn-start" class="big-btn">DOKUN VE BAŞLA</button>
+    <div class="howto">
+      <h3>NASIL OYNANIR</h3>
+      <ul>
+        <li><b>Sürükle:</b> Parmağını ekranın herhangi bir yerine koyup sürükle, gemi o yöne gider.</li>
+        <li><b>Hat çiz:</b> Kenardan boş alana gir. Kenara geri döndüğünde boss'un olmadığı taraf senin olur.</li>
+        <li><b>%80</b> alanı ele geçir, bölümü geç. Fazlası bonus!</li>
+        <li><b>Çizerken savunmasızsın.</b> Düşman hatta değerse fitil yanar, dururşan hattın başından yanar.</li>
+        <li><b>Kutuları kuşat:</b> S hız, T dondur, L lazer, P kalkan, E ek can, B bonus.</li>
+        <li><b>Lazer</b> ile boss'u yok edersen <b>ÖZEL BİTİRİŞ</b> ve dev bonus.</li>
+      </ul>
+      <p class="kbd">Klavye: Ok tuşları / WASD, Boşluk = lazer, P = duraklat</p>
+    </div>
+  </div>
+
+  <div id="screen-intro" class="screen hidden">
+    <div class="lvl-no">BÖLÜM <span id="intro-no">1</span></div>
+    <div class="lvl-name" id="intro-name">VOLFIA YÖRÜNGESİ</div>
+    <div class="lvl-sub">HAZIR OL</div>
+  </div>
+
+  <div id="screen-clear" class="screen hidden">
+    <div class="lvl-no" id="clear-title">BÖLÜM TEMİZLENDİ</div>
+    <table class="bonus">
+      <tr><td>Ele geçirilen</td><td id="clear-pct">0%</td></tr>
+      <tr><td>Fazla alan bonusu</td><td id="clear-over">0</td></tr>
+      <tr><td>Zaman bonusu</td><td id="clear-time">0</td></tr>
+      <tr id="clear-special-row" class="hidden"><td>ÖZEL BİTİRİŞ</td><td id="clear-special">0</td></tr>
+    </table>
+  </div>
+
+  <div id="screen-pause" class="screen hidden">
+    <div class="lvl-no">DURAKLATILDI</div>
+    <button id="btn-resume" class="big-btn">DEVAM</button>
+    <button id="btn-quit" class="big-btn ghost">ANA MENÜ</button>
+  </div>
+
+  <div id="screen-over" class="screen hidden">
+    <div class="lvl-no">OYUN BİTTİ</div>
+    <div class="final">SKOR <span id="over-score">0</span></div>
+    <div id="over-newhi" class="newhi hidden">YENİ REKOR!</div>
+    <button id="btn-again" class="big-btn">TEKRAR OYNA</button>
+    <button id="btn-menu" class="big-btn ghost">ANA MENÜ</button>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

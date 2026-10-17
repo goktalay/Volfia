@@ -1,0 +1,12 @@
+{
+  "name": "volfia",
+  "version": "0.1.0",
+  "description": "VOLFIA - Volfied'in dokunmatik (mobil) yeniden yapımı",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx http-server . -p 8080 -c-1",
+    "test": "node --test test/*.test.mjs"
+  },
+  "license": "MIT"
+}
