@@ -41,12 +41,21 @@ npm test           # ızgara / alan kapatma birim testleri
 ```
 
 ES modülleri kullanıldığı için dosya `file://` ile değil, bir HTTP sunucusundan açılmalıdır.
-Telefonda denemek için bilgisayar ile aynı Wi-Fi'da `http://<bilgisayar-ip>:8080` adresine girin.
+Telefonda yerel denemek için bilgisayar ile aynı Wi-Fi'da `http://<bilgisayar-ip>:8080` adresine girin.
 
-## GitHub Pages
+## Yayın
 
-`.github/workflows/pages.yml` her `master` push'unda testleri çalıştırıp siteyi GitHub Pages'e
-yayınlar. Depo ayarlarından **Settings → Pages → Source: GitHub Actions** seçilmelidir.
+Oyun yalnızca Mastertool altında yayınlanır:
+
+- Oyun: https://mastertool.download/oyunlar/volfai/
+- Tanıtım: https://mastertool.download/oyunlar/volfai/tanitim/ (`promo/`)
+
+Yayını Mastertool/Hepgo sunucu oturumu, `release/vX.Y.Z` dallarından kullanıcı onayıyla yapar.
+Yüklenen dosyalar: `index.html, manifest.webmanifest, sw.js, css/, js/, icons/` ve `promo/`.
+Oyun `mastertool.download` kökeninde çalışınca Mastertool hesap API'si otomatik etkinleşir;
+başka bir kökende yalnız yerel misafir profili çalışır (bkz. `docs/MASTERTOOL_API.md`).
+
+`.github/workflows/pages.yml` yalnızca CI (testler) ve isteğe bağlı GitHub Pages önizlemesi içindir.
 
 ## Yapı
 

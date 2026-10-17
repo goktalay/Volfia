@@ -3,8 +3,8 @@
 Oyun saf istemci tarafıdır (statik HTML/JS). Kullanıcı yönetimi Mastertool hesabıyla çalışır.
 Mastertool backend'i (Python/FastAPI, mastertool.download) için VOLFAI'ye **`vf` uygulama kodu**
 gerekir. Oyun `mastertool.download` altında sunulduğunda (`/oyunlar/volfai/`) API otomatik
-etkinleşir ve aynı kökende çerezli web oturumu kullanılır. Başka bir kökende (ör. hepgo.com)
-yalnız yerel misafir profili çalışır; hiçbir özellik kaybolmaz.
+etkinleşir ve aynı kökende çerezli web oturumu kullanılır. Oyun yalnızca Mastertool altında
+yayınlanır; başka bir kökende (yerel geliştirme) yalnız misafir profili çalışır.
 
 ## Oyunun kullandığı uç noktalar
 
