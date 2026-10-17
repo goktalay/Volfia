@@ -70,8 +70,14 @@ export const UPGRADES = {
   magnet:  { name: 'COIN MIKNATISI',    desc: 'HEPCOIN daha sık ve daha değerli düşer', icon: '◎', costs: [90, 200, 360] },
 };
 
-// Mastertool hesap bütünleşmesi (boş bırakılırsa yalnız yerel misafir profili çalışır)
+// Mastertool hesap bütünleşmesi (sözleşme v1: prelogin + PBKDF2 auth_hash + login)
+// Oyun mastertool.download altında sunuluyorsa API otomatik etkinleşir (aynı köken, çerezli oturum).
+// Başka bir kökende API_BASE boşsa yalnız yerel misafir profili çalışır.
+const onMastertool = typeof location !== 'undefined' && /(^|\.)mastertool\.download$/.test(location.hostname);
 export const MASTERTOOL = {
-  API_BASE: '',                 // ör. 'https://mastertool.download/api/volfai'
-  REGISTER_URL: 'https://mastertool.download/',
+  API_BASE: onMastertool ? location.origin : '',   // ör. 'https://mastertool.download'
+  APP_CODE: 'vf',                                   // VOLFAI uygulama kodu → /api/vf/...
+  APP_VERSION: '0.2.0',
+  REGISTER_URL: 'https://mastertool.download/kayit?app=vf',
+  LOGIN_URL: 'https://mastertool.download/giris?app=vf',
 };

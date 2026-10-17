@@ -237,7 +237,7 @@ function renderSettings() {
     info.innerHTML = `<b>👤 ${account.user.name}</b> olarak giriş yaptın. İlerlemen Mastertool hesabınla eşitleniyor${account.syncState === 'error' ? ' <span style="color:#ff8aa0">(son eşitleme başarısız)</span>' : ''}.`;
     $('login-form').classList.add('hidden'); $('btn-logout').classList.remove('hidden');
   } else {
-    info.textContent = account.hasApi ? 'Misafir olarak oynuyorsun. Mastertool hesabınla giriş yaparsan ilerlemen tüm cihazlarında eşitlenir.' : 'Misafir olarak oynuyorsun. İlerlemen bu cihazda saklanır. Mastertool hesap bağlantısı yakında etkinleşecek.';
+    info.innerHTML = account.hasApi ? 'Misafir olarak oynuyorsun. Mastertool hesabınla giriş yaparsan ilerlemen tüm cihazlarında eşitlenir.' : `Misafir olarak oynuyorsun. İlerlemen bu cihazda saklanır. Hesap eşitlemesi için oyunu <a class="link" href="https://mastertool.download/oyunlar/volfai/">mastertool.download</a> üzerinden aç.`;
     $('login-form').classList.remove('hidden'); $('btn-logout').classList.add('hidden');
     $('login-form').querySelectorAll('input,button').forEach(e => { e.disabled = !account.hasApi; });
   }
@@ -250,7 +250,7 @@ $('login-form').addEventListener('submit', async e => {
   try { const u = await account.login($('login-id').value.trim(), $('login-pw').value); msg.textContent = `Hoş geldin, ${u.name}!`; msg.className = 'msg ok'; $('login-pw').value = ''; setTimeout(renderSettings, 600); }
   catch (err) { msg.textContent = err.message || 'Giriş başarısız.'; }
 });
-$('btn-logout').addEventListener('click', () => { account.logout(); renderSettings(); });
+$('btn-logout').addEventListener('click', async () => { await account.logout(); renderSettings(); });
 $('set-sound').addEventListener('change', e => { account.profile.settings.muted = !e.target.checked; sfx.setMuted(!e.target.checked); account.save(); });
 $('set-vibrate').addEventListener('change', e => { account.profile.settings.vibrate = e.target.checked; account.save(); });
 $('btn-reset').addEventListener('click', () => { if (confirm('Tüm ilerleme, HEPCOIN ve yükseltmeler silinecek. Emin misin?')) { account.resetProgress(); selLevel = null; renderSettings(); } });
@@ -277,10 +277,6 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && gam
 for (const k in screens) screens[k].addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
 $('hud').addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
 account.onChange(() => { if (currentScreen === 'hangar') renderHangar(); });
-
-// Mastertool uygulaması oyunu ?token=... ile açarsa otomatik giriş
-const qs = new URLSearchParams(location.search);
-if (qs.get('token') && account.hasApi) account.loginWithToken(qs.get('token')).then(() => { history.replaceState(null, '', location.pathname); showScreen(currentScreen); }).catch(() => {});
 
 showScreen('title');
 
