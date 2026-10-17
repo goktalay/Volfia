@@ -1,4 +1,4 @@
-// VOLFIA - WebAudio ile sentezlenmiş retro sesler (harici dosya yok)
+// VOLFAI - WebAudio ile sentezlenmiş retro sesler (harici dosya yok)
 export class Sfx {
   constructor() { this.ctx = null; this.muted = false; this.master = null; }
   init() {

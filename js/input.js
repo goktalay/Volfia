@@ -1,4 +1,4 @@
-// VOLFIA - dokunmatik "yüzen joystick" + klavye
+// VOLFAI - dokunmatik "yüzen joystick" + klavye
 // Parmağı ekranın herhangi bir yerine koy, sürükle: baskın eksen yönü belirler.
 // Çapa parmağı takip eder (floating stick) → yön değişimi anında hissedilir.
 export const DIR = { NONE: 0, UP: 1, DOWN: 2, LEFT: 3, RIGHT: 4 };

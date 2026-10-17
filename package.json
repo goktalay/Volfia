@@ -1,7 +1,7 @@
 {
-  "name": "volfia",
+  "name": "volfai",
   "version": "0.1.0",
-  "description": "VOLFIA - Volfied'in dokunmatik (mobil) yeniden yapımı",
+  "description": "VOLFAI - Volfied'in dokunmatik (mobil) yeniden yapımı",
   "private": true,
   "type": "module",
   "scripts": {

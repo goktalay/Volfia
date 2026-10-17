@@ -1,4 +1,4 @@
-# VOLFIA
+# VOLFAI
 
 Taito'nun klasik MS-DOS / arcade oyunu **Volfied**'in (Qix'in devamı) modern, dokunmatik
 telefonlar için yeniden yapımı. Kurulum gerektirmez: tarayıcıda çalışır, PWA olarak ana

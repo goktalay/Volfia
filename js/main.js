@@ -1,4 +1,4 @@
-// VOLFIA - giriş noktası: döngü, HUD, ekranlar
+// VOLFAI - giriş noktası: döngü, HUD, ekranlar
 import { Game, STATE } from './game.js';
 import { Renderer } from './render.js';
 import { Input } from './input.js';
@@ -11,7 +11,7 @@ const sfx = new Sfx();
 const game = new Game(sfx, storage);
 const renderer = new Renderer($('game'), $('stick'));
 const input = new Input(document.body, $('btn-fire'));
-window.__volfia = { game, input, renderer }; // hata ayıklama / otomatik test
+window.__volfai = { game, input, renderer }; // hata ayıklama / otomatik test
 
 const screens = { title: $('screen-title'), intro: $('screen-intro'), clear: $('screen-clear'), pause: $('screen-pause'), over: $('screen-over') };
 function showScreen(name) { for (const k in screens) screens[k].classList.toggle('hidden', k !== name); }

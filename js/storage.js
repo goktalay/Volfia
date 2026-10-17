@@ -1,5 +1,5 @@
-// VOLFIA - yerel kayıt (yüksek skor, ayarlar)
-const KEY = 'volfia.v1';
+// VOLFAI - yerel kayıt (yüksek skor, ayarlar)
+const KEY = 'volfai.v1';
 function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
 function save(d) { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) { /* özel mod */ } }
 export const storage = {

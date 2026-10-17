@@ -1,4 +1,4 @@
-// VOLFIA - ızgara ve alan ele geçirme mantığı (saf, DOM bağımsız)
+// VOLFAI - ızgara ve alan ele geçirme mantığı (saf, DOM bağımsız)
 import { GRID_W, GRID_H, CELL } from './config.js';
 
 export class Grid {

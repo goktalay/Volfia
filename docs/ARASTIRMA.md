@@ -1,6 +1,6 @@
 # Volfied Araştırma Notları
 
-VOLFIA, Taito'nun 1989 tarihli arcade oyunu **Volfied**'in (Qix'in devamı) mobil / dokunmatik
+VOLFAI, Taito'nun 1989 tarihli arcade oyunu **Volfied**'in (Qix'in devamı) mobil / dokunmatik
 yeniden yapımıdır. Aşağıdaki notlar oyunun tasarımına temel olan kaynak bilgilerdir.
 
 ## Orijinal oyun (Volfied, Taito 1989)
@@ -29,9 +29,9 @@ yeniden yapımıdır. Aşağıdaki notlar oyunun tasarımına temel olan kaynak 
 - Portlar: PC Engine, Mega Drive (Ultimate Qix), Amiga, Atari ST, **MS-DOS (Empire Interactive)**,
   FM Towns, PlayStation (Qix Neo), Taito Legends, Arcade Archives (2024).
 
-## VOLFIA'da modernleştirme kararları
+## VOLFAI'da modernleştirme kararları
 
-| Orijinal | VOLFIA |
+| Orijinal | VOLFAI |
 |---|---|
 | Joystick + "çiz" düğmesi | Yüzen sanal joystick: parmağını herhangi bir yere koy, sürükle. Boş alana girince otomatik çizilir. |
 | Yön tuşlarıyla köşe dönme | Joystick'in ikinci ekseni "köşe yardımı" olarak kullanılır. |

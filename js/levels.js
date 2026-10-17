@@ -1,4 +1,4 @@
-// VOLFIA - 16 bölüm tanımı ve her bölüm için prosedürel "gezegen" sanatı
+// VOLFAI - 16 bölüm tanımı ve her bölüm için prosedürel "gezegen" sanatı
 // Volfied'de her bölümün kendine özgü arka planı vardır; alan kapattıkça ortaya çıkar.
 
 export function mulberry32(seed) {
@@ -14,7 +14,7 @@ export function mulberry32(seed) {
 
 // Her bölüm: isim, boss tipi, renkler, zorluk parametreleri
 export const LEVELS = [
-  { name: 'VOLFIA YÖRÜNGESİ', boss: 'amoeba',  bossR: 4.5, bossSpeed: 14, smalls: 2, smallSpeed: 10, shoot: 0,    time: 150, blocks: 2, hue: 200, art: 'planet' },
+  { name: 'VOLFAI YÖRÜNGESİ', boss: 'amoeba',  bossR: 4.5, bossSpeed: 14, smalls: 2, smallSpeed: 10, shoot: 0,    time: 150, blocks: 2, hue: 200, art: 'planet' },
   { name: 'KIZIL ÇÖL',        boss: 'amoeba',  bossR: 4.5, bossSpeed: 16, smalls: 3, smallSpeed: 12, shoot: 0,    time: 140, blocks: 2, hue: 15,  art: 'desert' },
   { name: 'BUZ KUŞAĞI',       boss: 'crystal', bossR: 5,   bossSpeed: 17, smalls: 3, smallSpeed: 13, shoot: 0,    time: 140, blocks: 3, hue: 190, art: 'ice' },
   { name: 'NEBULA GEÇİDİ',    boss: 'crystal', bossR: 5,   bossSpeed: 18, smalls: 4, smallSpeed: 14, shoot: 0.15, time: 130, blocks: 3, hue: 280, art: 'nebula' },
@@ -29,7 +29,7 @@ export const LEVELS = [
   { name: 'ÇİFT GÜNEŞ',       boss: 'amoeba',  bossR: 7,   bossSpeed: 28, smalls: 8, smallSpeed: 23, shoot: 0.55, time: 105, blocks: 5, hue: 50,  art: 'twinsun' },
   { name: 'KARA DELİK',       boss: 'crystal', bossR: 7,   bossSpeed: 30, smalls: 9, smallSpeed: 24, shoot: 0.6,  time: 105, blocks: 5, hue: 270, art: 'blackhole' },
   { name: 'ANA GEMİ',         boss: 'spiker',  bossR: 7.5, bossSpeed: 31, smalls: 9, smallSpeed: 25, shoot: 0.7,  time: 100, blocks: 5, hue: 0,   art: 'mothership' },
-  { name: 'VOLFIA: EVE DÖNÜŞ', boss: 'amoeba', bossR: 8,   bossSpeed: 33, smalls: 10, smallSpeed: 26, shoot: 0.8, time: 100, blocks: 6, hue: 205, art: 'home' },
+  { name: 'VOLFAI: EVE DÖNÜŞ', boss: 'amoeba', bossR: 8,   bossSpeed: 33, smalls: 10, smallSpeed: 26, shoot: 0.8, time: 100, blocks: 6, hue: 205, art: 'home' },
 ];
 
 export function levelDef(n) {

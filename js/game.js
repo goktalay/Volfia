@@ -1,4 +1,4 @@
-// VOLFIA - oyun durumu ve güncelleme mantığı
+// VOLFAI - oyun durumu ve güncelleme mantığı
 import { GRID_W, GRID_H, CELL, CLEAR_PERCENT, BASE_PLAYER_SPEED, SPEED_BOOST_MULT, FUSE_SPEED_RATIO, LIVES_START, POWERUPS, SCORE } from './config.js';
 import { Grid } from './grid.js';
 import { levelDef, mulberry32 } from './levels.js';

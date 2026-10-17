@@ -1,4 +1,4 @@
-// VOLFIA - çizim katmanı
+// VOLFAI - çizim katmanı
 import { GRID_W, GRID_H, CELL, POWERUPS } from './config.js';
 import { drawLevelArt } from './levels.js';
 import { DIR_VEC } from './input.js';

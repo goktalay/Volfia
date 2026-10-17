@@ -1,4 +1,4 @@
-// VOLFIA - oyun sabitleri
+// VOLFAI - oyun sabitleri
 export const GRID_W = 80;      // hücre (yatay)
 export const GRID_H = 120;     // hücre (dikey)
 
