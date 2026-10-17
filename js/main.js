@@ -80,7 +80,7 @@ function handleEvents() {
     switch (ev.type) {
       case 'trail': renderer.setTrailPixel(ev.x, ev.y); break;
       case 'parkur':
-        $('intro-no').textContent = ev.def.L; $('intro-p').textContent = ev.def.p; $('intro-n').textContent = ev.def.n; $('intro-name').textContent = ev.def.name; break;
+        $('intro-no').textContent = ev.def.L; $('intro-p').textContent = ev.def.p; $('intro-n').textContent = ev.def.n; $('intro-name').textContent = ev.def.name; $('intro-creature').textContent = ev.def.creature.name + (ev.def.dualBoss ? ' ×2' : ''); break;
       case 'state':
         if (ev.state === STATE.INTRO) showScreen('intro');
         else if (ev.state === STATE.PLAY) showScreen(null);

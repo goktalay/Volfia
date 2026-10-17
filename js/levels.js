@@ -13,8 +13,41 @@ export function mulberry32(seed) {
   };
 }
 
-const ARTS = ['planet', 'desert', 'ice', 'nebula', 'rings', 'city', 'lava', 'moon', 'asteroids', 'ocean', 'storm', 'crystal', 'twinsun', 'blackhole', 'mothership', 'home'];
-const BOSSES = ['amoeba', 'crystal', 'spiker'];
+// 30 bölüm = 30 farklı yaratık (Volfied'de her bölümün kendine özgü ana düşmanı vardır).
+// shape: çizim ailesi · pattern: hareket kalıbı (wander, bounce, zigzag, orbit, charge)
+// pulse: boyut nefes alır · serpent: gövde halkaları takip eder · dual: iki yaratık birlikte
+export const CREATURES = [
+  { name: 'UZAY AMİBİ',          shape: 'amoeba',    pattern: 'wander', hue: 25,  rMul: 1.0 },
+  { name: 'KIZIL AKREP',         shape: 'crab',      pattern: 'zigzag', hue: 10,  rMul: 1.0 },
+  { name: 'BUZ KRİSTALİ',        shape: 'crystal',   pattern: 'bounce', hue: 195, rMul: 1.0 },
+  { name: 'NEBULA DENİZANASI',   shape: 'jelly',     pattern: 'wander', hue: 290, rMul: 1.1, pulse: true },
+  { name: 'HALKA BEKÇİSİ',       shape: 'ring',      pattern: 'orbit',  hue: 45,  rMul: 1.1 },
+  { name: 'ŞEHİR GÖZÜ',          shape: 'eye',       pattern: 'charge', hue: 160, rMul: 1.0 },
+  { name: 'LAV YILDIZI',         shape: 'star',      pattern: 'bounce', hue: 15,  rMul: 1.0, spin: 3 },
+  { name: 'AY BÖCEĞİ',           shape: 'beetle',    pattern: 'zigzag', hue: 215, rMul: 1.0 },
+  { name: 'ASTEROİT ÇEKİRDEĞİ',  shape: 'virus',     pattern: 'wander', hue: 30,  rMul: 1.2 },
+  { name: 'İKİZ KALAMARLAR',     shape: 'squid',     pattern: 'wander', hue: 150, rMul: 0.9, dual: true },
+  { name: 'FIRTINA GİRDABI',     shape: 'spiral',    pattern: 'orbit',  hue: 250, rMul: 1.1, spin: 2 },
+  { name: 'KRİSTAL KÜP',         shape: 'cube',      pattern: 'bounce', hue: 300, rMul: 1.0, spin: 1.2 },
+  { name: 'ÇİFT GÜNEŞ KÜRELERİ', shape: 'orb',       pattern: 'orbit',  hue: 50,  rMul: 0.9, dual: true, pulse: true },
+  { name: 'OLAY UFKU GÖZÜ',      shape: 'eye',       pattern: 'wander', hue: 270, rMul: 1.25, pulse: true },
+  { name: 'KOMUTA DRONU',        shape: 'saucer',    pattern: 'charge', hue: 0,   rMul: 1.0 },
+  { name: 'GÖLGE PERVANESİ',     shape: 'moth',      pattern: 'wander', hue: 330, rMul: 1.1 },
+  { name: 'DEMİR DİŞLİ',         shape: 'gear',      pattern: 'bounce', hue: 20,  rMul: 1.0, spin: 1.5 },
+  { name: 'KUTUP YILANI',        shape: 'serpent',   pattern: 'wander', hue: 210, rMul: 0.8, serpent: 7 },
+  { name: 'PLAZMA SOLUCANI',     shape: 'serpent',   pattern: 'zigzag', hue: 290, rMul: 0.8, serpent: 10 },
+  { name: 'GAZ DEVİ BALONU',     shape: 'amoeba',    pattern: 'wander', hue: 35,  rMul: 1.35, pulse: true },
+  { name: 'AYNA PRİZMASI',       shape: 'diamond',   pattern: 'zigzag', hue: 180, rMul: 1.0, spin: 0.8 },
+  { name: 'ZÜMRÜT ÖRÜMCEKLER',   shape: 'spider',    pattern: 'charge', hue: 120, rMul: 0.85, dual: true },
+  { name: 'ÇİFTE HALKA',         shape: 'ring',      pattern: 'bounce', hue: 320, rMul: 0.9, dual: true, spin: 2 },
+  { name: 'ÖLÜ YILDIZ KAFASI',   shape: 'skull',     pattern: 'wander', hue: 60,  rMul: 1.1 },
+  { name: 'SAFİR HİDRA',         shape: 'hydra',     pattern: 'charge', hue: 230, rMul: 1.15 },
+  { name: 'ÜÇLÜ GÜNEŞ ÇEKİRDEĞİ', shape: 'trisun',   pattern: 'orbit',  hue: 10,  rMul: 1.0, spin: 1.4, pulse: true },
+  { name: 'OLAY UFKU YUTUCUSU',  shape: 'blackhole', pattern: 'wander', hue: 200, rMul: 1.3, spin: 2.5, pulse: true },
+  { name: 'KOMUTA GEMİSİ',       shape: 'saucer',    pattern: 'charge', hue: 350, rMul: 1.25, dual: true, twin: { shape: 'orb', rMul: 0.5, hue: 350 } },
+  { name: 'SON SAVUNMA KULELERİ', shape: 'cube',     pattern: 'zigzag', hue: 45,  rMul: 0.95, dual: true, spin: 0.6 },
+  { name: 'VOLFAI KRALİÇESİ',    shape: 'queen',     pattern: 'charge', hue: 205, rMul: 1.35, pulse: true },
+];
 
 // 30 bölüm: ad, sanat teması, renk tonu
 export const LEVELS = [
@@ -77,12 +110,14 @@ export function parkurDef(L, p) {
   const rng = mulberry32(L * 1000 + p * 17 + 3);
   const isBossParkur = p === n;                  // bölümün son parkuru: daha büyük boss, daha az kutu
   const lerp = (a, b) => a + (b - a) * d;
+  const creature = CREATURES[(L - 1) % CREATURES.length];
   return {
     L, p, n, index: L * 100 + p, isBossParkur,
     name: info.name, art: info.art,
     hue: (info.hue + (p - 1) * 9) % 360,
-    boss: BOSSES[(L + p) % BOSSES.length],
-    bossR: lerp(4.5, 8) + (isBossParkur ? 1 : 0),
+    creature,
+    boss: creature.shape,
+    bossR: (lerp(4.5, 8) + (isBossParkur ? 1 : 0)) * creature.rMul,
     bossSpeed: lerp(14, 36) + (isBossParkur ? 3 : 0),
     bossHp: Math.round(lerp(40, 160) * (isBossParkur ? 1.5 : 1)),
     smalls: Math.round(lerp(2, 10)) + (isBossParkur ? 1 : 0),
@@ -90,7 +125,7 @@ export function parkurDef(L, p) {
     shoot: L <= 2 ? 0 : lerp(0, 0.9),
     time: Math.round(lerp(150, 90)),
     blocks: isBossParkur ? 2 : Math.round(lerp(2, 6)),
-    dualBoss: L >= 12 && isBossParkur && rng() < 0.6,  // ileri bölümlerde iki boss
+    dualBoss: !!creature.dual,  // ikili yaratıklar bölüm boyunca çift gelir
   };
 }
 

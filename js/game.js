@@ -84,10 +84,13 @@ export class Game {
 
     this.player = { x: GRID_W >> 1, y: GRID_H - 1, dir: DIR.NONE, face: DIR.UP, drawing: false, trail: [], start: null, acc: 0, invuln: 2.0, idle: 0 };
 
-    this.bosses = [this.makeBoss(def, GRID_W / 2, GRID_H / 2, def.boss)];
+    const cr = def.creature;
+    this.bosses = [this.makeBoss(def, GRID_W / 2, GRID_H / 2, cr)];
     if (def.dualBoss) {
-      const b2 = this.makeBoss(def, GRID_W / 2, GRID_H / 4, def.boss === 'amoeba' ? 'spiker' : 'amoeba');
-      b2.r *= 0.75; b2.hp = b2.maxHp = Math.round(def.bossHp * 0.6);
+      const twin = cr.twin ? { ...cr, ...cr.twin, pattern: cr.twin.pattern || 'orbit' } : cr;
+      const b2 = this.makeBoss(def, GRID_W / 2, GRID_H / 4, twin);
+      b2.r *= cr.twin ? 1 : 0.8; b2.baseR = b2.r; b2.hp = b2.maxHp = Math.round(def.bossHp * 0.6);
+      b2.phase = Math.PI; // zıt fazda dönsün
       this.bosses.push(b2);
     }
 
@@ -104,14 +107,18 @@ export class Game {
     this.emit('powers'); this.emit('lives'); this.emit('coins');
   }
 
-  makeBoss(def, x, y, type) {
+  makeBoss(def, x, y, cr) {
     const a = this.rng() * Math.PI * 2;
-    return {
-      x, y, r: def.bossR, type,
+    const r = def.bossR * (cr.rMul / def.creature.rMul);
+    const b = {
+      x, y, r, baseR: r, type: cr.shape, cr, hue: cr.hue, pattern: cr.pattern,
       vx: Math.cos(a) * def.bossSpeed, vy: Math.sin(a) * def.bossSpeed,
       speed: def.bossSpeed, turnT: 1.5, dashT: 0, shootT: 2 + this.rng() * 3,
       hp: def.bossHp, maxHp: def.bossHp, hitFlash: 0, angle: 0, alive: true,
+      phase: 0, orbitW: 1.6, chargeT: 2 + this.rng() * 2, segs: [], hist: [],
     };
+    if (cr.serpent) for (let i = 0; i < cr.serpent; i++) b.segs.push({ x, y });
+    return b;
   }
 
   coinDelay() { return (COIN.SPAWN_MIN + this.rng() * (COIN.SPAWN_MAX - COIN.SPAWN_MIN)) / (this.fx?.coinRate || 1); }
@@ -353,17 +360,45 @@ export class Game {
 
   updateBoss(b, dt) {
     if (!b.alive) return;
-    b.angle += dt * 1.5;
+    b.angle += dt * (b.cr.spin || 1.5);
+    b.phase += dt;
     if (b.hitFlash > 0) b.hitFlash -= dt;
-    b.turnT -= dt;
-    if (b.turnT <= 0) {
-      b.turnT = 0.8 + this.rng() * 2.2;
-      const ang = Math.atan2(b.vy, b.vx) + (this.rng() - 0.5) * 2.4;
-      const sp = b.speed * (b.dashT > 0 ? 2 : 1);
-      b.vx = Math.cos(ang) * sp; b.vy = Math.sin(ang) * sp;
-      if (this.rng() < 0.25) { b.dashT = 0.6; b.vx *= 2; b.vy *= 2; }
+    if (b.cr.pulse) b.r = b.baseR * (1 + 0.18 * Math.sin(b.phase * 2.2));
+    const p = this.player;
+    const norm = (sp) => { const l = Math.hypot(b.vx, b.vy) || 1; b.vx = b.vx / l * sp; b.vy = b.vy / l * sp; };
+    switch (b.pattern) {
+      case 'bounce': // düz çizgiler, keskin sekmeler, hep tam hız
+        norm(b.speed * 1.15);
+        break;
+      case 'zigzag': // kısa aralıklarla 90° dönüşler
+        b.turnT -= dt;
+        if (b.turnT <= 0) { b.turnT = 0.45 + this.rng() * 0.6; const ang = Math.atan2(b.vy, b.vx) + (this.rng() < 0.5 ? 1 : -1) * Math.PI / 2; b.vx = Math.cos(ang) * b.speed; b.vy = Math.sin(ang) * b.speed; }
+        break;
+      case 'orbit': { // sürüklenen bir merkez etrafında daire
+        const ang = Math.atan2(b.vy, b.vx) + b.orbitW * dt;
+        b.vx = Math.cos(ang) * b.speed; b.vy = Math.sin(ang) * b.speed;
+        b.turnT -= dt; if (b.turnT <= 0) { b.turnT = 2 + this.rng() * 3; if (this.rng() < 0.4) b.orbitW = -b.orbitW; }
+        break; }
+      case 'charge': // yavaş dolaşır, oyuncu çizerken ona doğru hamle yapar
+        b.chargeT -= dt;
+        if (b.dashT > 0) { b.dashT -= dt; if (b.dashT <= 0) norm(b.speed * 0.7); }
+        else if (b.chargeT <= 0) {
+          b.chargeT = 2.2 + this.rng() * 2.5;
+          if (p.drawing) { const ang = Math.atan2((p.y + 0.5) - b.y, (p.x + 0.5) - b.x); b.vx = Math.cos(ang) * b.speed * 2.6; b.vy = Math.sin(ang) * b.speed * 2.6; b.dashT = 0.75; this.floatText(b.x, b.y - b.r - 2, '!', '#ff5d5d', 0.5); }
+          else { const ang = this.rng() * Math.PI * 2; b.vx = Math.cos(ang) * b.speed * 0.7; b.vy = Math.sin(ang) * b.speed * 0.7; }
+        }
+        break;
+      default: // wander: Volfied benzeri yarı rastgele
+        b.turnT -= dt;
+        if (b.turnT <= 0) {
+          b.turnT = 0.8 + this.rng() * 2.2;
+          const ang = Math.atan2(b.vy, b.vx) + (this.rng() - 0.5) * 2.4;
+          const sp = b.speed * (b.dashT > 0 ? 2 : 1);
+          b.vx = Math.cos(ang) * sp; b.vy = Math.sin(ang) * sp;
+          if (this.rng() < 0.25) { b.dashT = 0.6; b.vx *= 2; b.vy *= 2; }
+        }
+        if (b.dashT > 0) { b.dashT -= dt; if (b.dashT <= 0) { b.vx *= 0.5; b.vy *= 0.5; } }
     }
-    if (b.dashT > 0) { b.dashT -= dt; if (b.dashT <= 0) { b.vx *= 0.5; b.vy *= 0.5; } }
     let nx = b.x + b.vx * dt;
     let hit = this.bossCollides(nx, b.y, b.r);
     if (hit) { b.vx = -b.vx; nx = b.x; if (hit.v === CELL.TRAIL) this.igniteFuse(hit.cx, hit.cy); }
@@ -374,19 +409,29 @@ export class Game {
     b.y = ny;
     b.x = Math.max(b.r + 1, Math.min(GRID_W - 1 - b.r, b.x));
     b.y = Math.max(b.r + 1, Math.min(GRID_H - 1 - b.r, b.y));
+    if (b.segs.length) {
+      b.hist.unshift([b.x, b.y]); if (b.hist.length > 400) b.hist.length = 400;
+      const gap = Math.max(1, Math.round(b.r * 1.6 / Math.max(0.05, Math.hypot(b.vx, b.vy) * dt)));
+      for (let i = 0; i < b.segs.length; i++) {
+        const h = b.hist[Math.min(b.hist.length - 1, (i + 1) * gap)]; if (!h) continue;
+        b.segs[i].x = h[0]; b.segs[i].y = h[1];
+        const sr = b.r * (0.8 - i * 0.04);
+        const cx = Math.floor(b.segs[i].x), cy = Math.floor(b.segs[i].y);
+        if (this.grid.get(cx, cy) === CELL.TRAIL) this.igniteFuse(cx, cy);
+        if (p.drawing && Math.hypot(b.segs[i].x - (p.x + 0.5), b.segs[i].y - (p.y + 0.5)) < sr + 0.5) { this.takeHit('serpent'); if (this.state !== STATE.PLAY) return; }
+      }
+    }
 
     if (this.def.shoot > 0) {
       b.shootT -= dt;
       if (b.shootT <= 0) {
         b.shootT = (1.2 + this.rng() * 2.5) / this.def.shoot;
-        const p = this.player;
         const ang = Math.atan2((p.y + 0.5) - b.y, (p.x + 0.5) - b.x) + (this.rng() - 0.5) * 0.3;
         const sp = 22 + this.L * 0.8;
         if (this.L >= MISSILE.FROM_LEVEL && p.drawing && this.rng() < Math.min(0.75, 0.25 + this.L * 0.02)) this.fireMissile(b, ang);
         else this.shots.push({ x: b.x + Math.cos(ang) * (b.r + 0.5), y: b.y + Math.sin(ang) * (b.r + 0.5), vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: 6 });
       }
     }
-    const p = this.player;
     if (p.drawing && Math.hypot(b.x - (p.x + 0.5), b.y - (p.y + 0.5)) < b.r + 0.6) this.die();
   }
 

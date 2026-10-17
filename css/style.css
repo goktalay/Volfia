@@ -190,3 +190,5 @@ details.howto { max-width: 360px; width: 100%; }
 .screen.panel .upgrade-list { overflow: visible; }
 .screen.panel > * { flex-shrink: 0; }
 .ship-list { min-height: 190px; }
+.creature-line { font-size: 12px; letter-spacing: 3px; color: var(--pink); margin-bottom: 10px; }
+.creature-line span { color: var(--text); font-weight: 800; }
