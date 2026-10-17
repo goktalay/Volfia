@@ -192,3 +192,11 @@ details.howto { max-width: 360px; width: 100%; }
 .ship-list { min-height: 190px; }
 .creature-line { font-size: 12px; letter-spacing: 3px; color: var(--pink); margin-bottom: 10px; }
 .creature-line span { color: var(--text); font-weight: 800; }
+
+.opt-label { font-size: 13px; margin: 6px 0 6px; }
+.opt-label small { color: var(--dim); font-size: 11px; }
+.opt-note { font-size: 11px; color: var(--dim); margin-top: 8px; }
+.seg { display: flex; gap: 6px; }
+.seg button { flex: 1; padding: 9px 4px; border-radius: 10px; border: 1px solid #2a3a60; background: #04060d; color: var(--text); font-size: 12px; font-weight: 700; }
+.seg button.on { background: linear-gradient(90deg, var(--cyan), #3aa8ff); color: #04060d; border-color: transparent; }
+.seg button small { display: block; font-size: 9px; font-weight: 400; opacity: 0.8; }

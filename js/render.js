@@ -14,15 +14,28 @@ export class Renderer {
     this.cs = 4; // hücre boyutu (css px)
     this.art = document.createElement('canvas');
     this.comp = document.createElement('canvas');
+    this.gw = GRID_W; this.gh = GRID_H;
     this.mask = document.createElement('canvas'); this.mask.width = GRID_W; this.mask.height = GRID_H;
     this.lines = document.createElement('canvas'); this.lines.width = GRID_W; this.lines.height = GRID_H;
+    this.spriteScale = 1.3;   // gemi, küçük düşman, coin, mermi, füze boyutu (Ayarlar)
+    this.availW = 300; this.availH = 500;
     this.starsC = document.createElement('canvas');
     this.gridVersion = -1;
     this.artLevel = -1;
     this.t = 0;
   }
 
+  setGridSize(w, h) {
+    if (this.gw === w && this.gh === h) return;
+    this.gw = w; this.gh = h;
+    this.mask.width = w; this.mask.height = h; this.lines.width = w; this.lines.height = h;
+    this.gridVersion = -1;
+    this.resize(this.availW, this.availH);
+  }
+
   resize(availW, availH) {
+    this.availW = availW; this.availH = availH;
+    const GRID_W = this.gw, GRID_H = this.gh;
     const cs = Math.max(2, Math.floor(Math.min(availW / GRID_W, availH / GRID_H) * 4) / 4);
     this.cs = cs;
     const w = Math.round(cs * GRID_W), h = Math.round(cs * GRID_H);
@@ -57,6 +70,8 @@ export class Renderer {
   }
 
   rebuildMask(grid) {
+    if (grid.w !== this.gw || grid.h !== this.gh) this.setGridSize(grid.w, grid.h);
+    const GRID_W = grid.w, GRID_H = grid.h;
     const m = this.mask.getContext('2d');
     const l = this.lines.getContext('2d');
     const img = m.createImageData(GRID_W, GRID_H);
@@ -82,6 +97,7 @@ export class Renderer {
     const ctx = this.ctx, g = game.grid, S = this.cs * this.dpr;
     this.t += 1 / 60;
     if (!game.def) return;
+    if (g.w !== this.gw || g.h !== this.gh) this.setGridSize(g.w, g.h);
     this.ensureArt(game.def);
     if (this.gridVersion !== game.gridVersion) { this.rebuildMask(g); this.gridVersion = game.gridVersion; }
 
@@ -121,18 +137,19 @@ export class Renderer {
     }
     // 6) düşmanlar
     const frozen = game.powers.T > 0;
-    for (const s of game.smalls) if (s.alive) this.drawSmall(ctx, s, S, frozen);
+    const SS = S * this.spriteScale;   // nesne ölçeği
+    for (const s of game.smalls) if (s.alive) this.drawSmall(ctx, s, SS, frozen);
     for (const b of game.bosses) if (b.alive) this.drawBoss(ctx, b, S, frozen, game.def);
-    for (const c of game.coins) this.drawCoin(ctx, c, S);
+    for (const c of game.coins) this.drawCoin(ctx, c, S, SS);
     for (const sh of game.shots) {
-      ctx.fillStyle = '#ff6b6b'; ctx.beginPath(); ctx.arc(sh.x * S, sh.y * S, S * 0.7, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(sh.x * S, sh.y * S, S * 0.3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ff6b6b'; ctx.beginPath(); ctx.arc(sh.x * S, sh.y * S, SS * 0.7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(sh.x * S, sh.y * S, SS * 0.3, 0, Math.PI * 2); ctx.fill();
     }
-    for (const m of game.missiles) this.drawMissile(ctx, m, S);
+    for (const m of game.missiles) this.drawMissile(ctx, m, S, SS);
     if (game.deflectFx) {
       const f = game.deflectFx, k = f.t / 0.35;
       ctx.strokeStyle = `rgba(180,140,255,${k})`; ctx.lineWidth = S * 0.8;
-      ctx.beginPath(); ctx.arc(f.x * S, f.y * S, S * 4.5 * (1.4 - k * 0.4), 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(f.x * S, f.y * S, SS * 4.5 * (1.4 - k * 0.4), 0, Math.PI * 2); ctx.stroke();
     }
     for (const be of game.beams) {
       const len = S * 3.5, a = Math.atan2(be.vy, be.vx);
@@ -140,7 +157,7 @@ export class Renderer {
       ctx.beginPath(); ctx.moveTo(be.x * S, be.y * S); ctx.lineTo(be.x * S - Math.cos(a) * len, be.y * S - Math.sin(a) * len); ctx.stroke();
     }
     // 7) oyuncu
-    if (game.state !== STATE.DYING) this.drawPlayer(ctx, game, S);
+    if (game.state !== STATE.DYING) this.drawPlayer(ctx, game, S, SS);
     // 8) parçacıklar & yazılar
     for (const p of game.particles) {
       ctx.globalAlpha = Math.max(0, p.life / p.max);
@@ -188,9 +205,9 @@ export class Renderer {
     ctx.fillText(b.captured ? b.letter : '?', x + w / 2, y + w / 2 + w * 0.03);
   }
 
-  drawPlayer(ctx, game, S) {
+  drawPlayer(ctx, game, S0, S) {
     const p = game.player;
-    const x = (p.x + 0.5) * S, y = (p.y + 0.5) * S;
+    const x = (p.x + 0.5) * S0, y = (p.y + 0.5) * S0;
     // korumalı bölge halkası: kenardayken görünür, çizime geçince kaybolur
     if (!p.drawing) {
       const pulse = 0.55 + 0.25 * Math.sin(this.t * 5);
@@ -226,10 +243,10 @@ export class Renderer {
     ctx.restore();
   }
 
-  drawMissile(ctx, m, S) {
+  drawMissile(ctx, m, S0, S) {
     // iz
-    for (let i = 0; i < m.trail.length; i++) { const [tx, ty] = m.trail[i]; ctx.fillStyle = `rgba(255,120,80,${(i / m.trail.length) * 0.5})`; ctx.fillRect(tx * S - S * 0.3, ty * S - S * 0.3, S * 0.6, S * 0.6); }
-    ctx.save(); ctx.translate(m.x * S, m.y * S); ctx.rotate(m.ang);
+    for (let i = 0; i < m.trail.length; i++) { const [tx, ty] = m.trail[i]; ctx.fillStyle = `rgba(255,120,80,${(i / m.trail.length) * 0.5})`; ctx.fillRect(tx * S0 - S * 0.3, ty * S0 - S * 0.3, S * 0.6, S * 0.6); }
+    ctx.save(); ctx.translate(m.x * S0, m.y * S0); ctx.rotate(m.ang);
     ctx.shadowColor = '#ff5d5d'; ctx.shadowBlur = S * 1.5;
     ctx.fillStyle = '#ff6b6b'; ctx.beginPath(); ctx.moveTo(S * 1.6, 0); ctx.lineTo(-S * 1.0, -S * 0.7); ctx.lineTo(-S * 0.6, 0); ctx.lineTo(-S * 1.0, S * 0.7); ctx.closePath(); ctx.fill();
     ctx.shadowBlur = 0;
@@ -237,8 +254,8 @@ export class Renderer {
     ctx.restore();
   }
 
-  drawCoin(ctx, c, S) {
-    const x = (c.x + 0.5) * S, y = (c.y + 0.5) * S;
+  drawCoin(ctx, c, S0, S) {
+    const x = (c.x + 0.5) * S0, y = (c.y + 0.5) * S0;
     const sx = Math.abs(Math.cos(c.spin));              // dönüş efekti
     const fade = c.life < 3 ? (Math.floor(c.life * 6) % 2 ? 0.3 : 1) : 1;
     ctx.save(); ctx.translate(x, y); ctx.scale(Math.max(0.15, sx), 1); ctx.globalAlpha = fade;
@@ -254,8 +271,9 @@ export class Renderer {
     if (c.value > 1) { ctx.fillStyle = '#ffe680'; ctx.font = `bold ${Math.round(S * 1.6)}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.fillText(`x${c.value}`, x, y - S * 2.4); }
   }
 
-  drawSmall(ctx, s, S, frozen) {
-    const x = s.x * S, y = s.y * S, r = S * 1.1;
+  drawSmall(ctx, s, SS, frozen) {
+    const S = this.cs * this.dpr;
+    const x = s.x * S, y = s.y * S, r = SS * 1.1;
     ctx.save(); ctx.translate(x, y); ctx.rotate(frozen ? 0 : s.spin);
     ctx.fillStyle = frozen ? '#9fdcff' : '#ff8a5d';
     ctx.beginPath();

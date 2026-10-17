@@ -4,7 +4,7 @@ import { Renderer, drawShipShape } from './render.js';
 import { Input } from './input.js';
 import { Sfx } from './audio.js';
 import { Account } from './account.js';
-import { POWERUPS, CLEAR_PERCENT, LEVEL_COUNT, UPGRADES, MASTERTOOL, SHIPS, TIMER } from './config.js';
+import { POWERUPS, CLEAR_PERCENT, LEVEL_COUNT, UPGRADES, MASTERTOOL, SHIPS, TIMER, FIELD_SIZES, SPRITE_SCALES } from './config.js';
 import { levelInfo, parkurCount, totalParkurs, drawLevelArt } from './levels.js';
 import { isLevelUnlocked, isParkurUnlocked, isParkurCleared, parkurResult, levelHonor, levelHonorRequired, totalHonor, highestUnlockedLevel, levelClearedCount, upgradeCost, buyUpgrade, upgradeEffects, currentShip, ownsShip, canBuyShip, buyShip, selectShip } from './profile.js';
 
@@ -32,6 +32,9 @@ function showScreen(name) {
   if (name === 'settings') renderSettings();
   if (name === 'title') { $('title-user').textContent = account.isLoggedIn ? `👤 ${account.user.name}` : 'Misafir'; }
 }
+
+// --- görünüm ayarları ---
+renderer.spriteScale = account.profile.settings.spriteScale || 1.3;
 
 // --- ses ---
 input.onAny = () => { sfx.init(); sfx.resume(); };
@@ -291,6 +294,12 @@ function renderSettings() {
     $('login-form').classList.remove('hidden'); $('btn-logout').classList.add('hidden');
     $('login-form').querySelectorAll('input,button').forEach(e => { e.disabled = !account.hasApi; });
   }
+  // görünüm
+  const fsel = prof.settings.field || 'normal', ssel = prof.settings.spriteScale || 1.3;
+  $('opt-field').innerHTML = Object.keys(FIELD_SIZES).map(k => `<button type="button" data-k="${k}" class="${k === fsel ? 'on' : ''}">${FIELD_SIZES[k].name}<small>${FIELD_SIZES[k].w}×${FIELD_SIZES[k].h}</small></button>`).join('');
+  $('opt-scale').innerHTML = SPRITE_SCALES.map(v => `<button type="button" data-v="${v}" class="${v === ssel ? 'on' : ''}">×${v}</button>`).join('');
+  $('opt-field').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { prof.settings.field = b.dataset.k; account.save(); sfx.tap(); renderSettings(); }));
+  $('opt-scale').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { prof.settings.spriteScale = +b.dataset.v; renderer.spriteScale = +b.dataset.v; account.save(); sfx.tap(); renderSettings(); }));
   const s = prof.stats;
   $('stats').innerHTML = `<span>Parkur</span><b>${s.parkursCleared}/${totalParkurs()}</b><span>Toplam onur</span><b>${totalHonor(prof)}</b><span>Kazanılan HEPCOIN</span><b>${fmt(s.coinsEarned)}</b><span>Boss</span><b>${s.bossKills}</b><span>Rekor</span><b>${fmt(prof.hiScore)}</b><span>Ölüm</span><b>${s.deaths}</b>`;
 }

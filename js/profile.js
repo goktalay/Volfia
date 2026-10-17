@@ -12,7 +12,7 @@ export function emptyProfile() {
     ships: { monotros: true },
     // levels[L] = { parkurs: { [p]: { honor, best, special } } }
     levels: {},
-    settings: { muted: false, vibrate: true },
+    settings: { muted: false, vibrate: true, field: 'normal', spriteScale: 1.3 },
     stats: { parkursCleared: 0, coinsEarned: 0, bossKills: 0, deaths: 0 },
     updatedAt: 0,
   };

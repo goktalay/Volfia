@@ -90,6 +90,14 @@ export const MISSILE = {
   REGEN_BASE: 25,       // sn; saptırıcı dolum süresi (seviye 3'te 14)
 };
 
+// Görünüm: oyun alanı çözünürlüğü (hücre sayısı) ve nesne boyutu çarpanı (Ayarlar)
+export const FIELD_SIZES = {
+  buyuk:  { name: 'BÜYÜK',  desc: 'İri hücreler, büyük gemi (60×90)',     w: 60,  h: 90 },
+  normal: { name: 'NORMAL', desc: 'Varsayılan (80×120)',                   w: 80,  h: 120 },
+  ince:   { name: 'İNCE',   desc: 'Daha çok ayrıntı, küçük gemi (100×150)', w: 100, h: 150 },
+};
+export const SPRITE_SCALES = [1, 1.3, 1.6, 2];
+
 export const TIMER = {
   WARN_AT: 10,          // son 10 sn: tik sesi + uyarı
   OVERTIME: 30,         // süre bitince can gider, bu kadar ek süre verilir (acele modu)
@@ -102,7 +110,7 @@ const onMastertool = typeof location !== 'undefined' && /(^|\.)mastertool\.downl
 export const MASTERTOOL = {
   API_BASE: onMastertool ? location.origin : '',   // ör. 'https://mastertool.download'
   APP_CODE: 'vf',                                   // VOLFAI uygulama kodu → /api/vf/...
-  APP_VERSION: '0.3.0',
+  APP_VERSION: '0.4.0',
   REGISTER_URL: 'https://mastertool.download/kayit?app=vf',
   LOGIN_URL: 'https://mastertool.download/giris?app=vf',
 };

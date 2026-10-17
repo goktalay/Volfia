@@ -1,5 +1,5 @@
 // VOLFAI - oyun durumu ve güncelleme mantığı
-import { GRID_W, GRID_H, CELL, CLEAR_PERCENT, BASE_PLAYER_SPEED, SPEED_BOOST_MULT, FUSE_SPEED_RATIO, LIVES_START, POWERUPS, SCORE, COIN, MISSILE, TIMER } from './config.js';
+import { GRID_W, GRID_H, CELL, FIELD_SIZES, CLEAR_PERCENT, BASE_PLAYER_SPEED, SPEED_BOOST_MULT, FUSE_SPEED_RATIO, LIVES_START, POWERUPS, SCORE, COIN, MISSILE, TIMER } from './config.js';
 import { Grid } from './grid.js';
 import { parkurDef, parkurCount, mulberry32 } from './levels.js';
 import { upgradeEffects, recordParkur, addCoins } from './profile.js';
@@ -11,7 +11,7 @@ export class Game {
   constructor(sfx, account) {
     this.sfx = sfx;
     this.account = account;
-    this.grid = new Grid(GRID_W, GRID_H);
+    this.grid = new Grid(GRID_W, GRID_H); // startParkur ayara göre yeniden boyutlandırır
     this.state = STATE.TITLE;
     this.events = [];
     this.rng = mulberry32(Date.now() & 0xffff);
@@ -44,6 +44,10 @@ export class Game {
     const def = parkurDef(L, p);
     const fx = upgradeEffects(this.profile);
     this.def = def; this.fx = fx;
+    // oyun alanı çözünürlüğü (Ayarlar)
+    const fs = FIELD_SIZES[this.profile.settings.field] || FIELD_SIZES.normal;
+    if (this.grid.w !== fs.w || this.grid.h !== fs.h) { this.grid = new Grid(fs.w, fs.h); this.emit('gridsize'); }
+    const GRID_W = this.grid.w, GRID_H = this.grid.h;
     this.L = L; this.p = p;
     this.score = 0;
     this.lives = LIVES_START + fx.extraLives;
@@ -149,9 +153,9 @@ export class Game {
         this.timeLeft = 0;
         this.overtime++;
         this.hurry = true; this.sfx.hurry(); this.emit('hurry');
-        this.floatText(GRID_W / 2, GRID_H / 2 - 6, 'SÜRE DOLDU!', '#ff5d5d', 2.2);
+        this.floatText(this.grid.w / 2, this.grid.h / 2 - 6, 'SÜRE DOLDU!', '#ff5d5d', 2.2);
         this.takeHit('timeout', true);
-        if (this.state === STATE.PLAY) { this.timeLeft = TIMER.OVERTIME; this.lastTick = -1; this.floatText(GRID_W / 2, GRID_H / 2 + 4, `+${TIMER.OVERTIME} SN EK SÜRE`, '#ffd23f', 2.2); }
+        if (this.state === STATE.PLAY) { this.timeLeft = TIMER.OVERTIME; this.lastTick = -1; this.floatText(this.grid.w / 2, this.grid.h / 2 + 4, `+${TIMER.OVERTIME} SN EK SÜRE`, '#ffd23f', 2.2); }
         else this.pendingOvertime = true;
       }
     }
@@ -289,7 +293,7 @@ export class Game {
       this.allBlocksBonusGiven = true;
       this.addScore(SCORE.ALL_BLOCKS);
       this.superWeapon = true; this.powers.L = 20 + this.fx.laserBonus;
-      this.floatText(GRID_W / 2, GRID_H / 2, 'SÜPER SİLAH!', '#ff5d8f', 2.4);
+      this.floatText(this.grid.w / 2, this.grid.h / 2, 'SÜPER SİLAH!', '#ff5d8f', 2.4);
       this.sfx.power(); this.emit('powers');
     }
     if (g.percent() >= CLEAR_PERCENT) this.parkurClear(false);
@@ -407,8 +411,8 @@ export class Game {
     hit = this.bossCollides(b.x, ny, b.r);
     if (hit) { b.vy = -b.vy; ny = b.y; if (hit.v === CELL.TRAIL) this.igniteFuse(hit.cx, hit.cy); }
     b.y = ny;
-    b.x = Math.max(b.r + 1, Math.min(GRID_W - 1 - b.r, b.x));
-    b.y = Math.max(b.r + 1, Math.min(GRID_H - 1 - b.r, b.y));
+    b.x = Math.max(b.r + 1, Math.min(this.grid.w - 1 - b.r, b.x));
+    b.y = Math.max(b.r + 1, Math.min(this.grid.h - 1 - b.r, b.y));
     if (b.segs.length) {
       b.hist.unshift([b.x, b.y]); if (b.hist.length > 400) b.hist.length = 400;
       const gap = Math.max(1, Math.round(b.r * 1.6 / Math.max(0.05, Math.hypot(b.vx, b.vy) * dt)));
