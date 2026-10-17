@@ -44,6 +44,9 @@ export class Sfx {
   bossHit()  { this.tone({ f: 200, f2: 120, type: 'square', dur: 0.08, vol: 0.3 }); }
   fuse()     { this.tone({ f: 2000, f2: 1500, type: 'square', dur: 0.05, vol: 0.12 }); }
   die()      { this.noise(0.5, 0.5); this.tone({ f: 400, f2: 40, type: 'sawtooth', dur: 0.7, vol: 0.5 }); }
+  coin()     { this.tone({ f: 1500, type: 'square', dur: 0.06, vol: 0.2 }); this.tone({ f: 2200, type: 'square', dur: 0.1, vol: 0.2, delay: 0.06 }); }
+  buy()      { [660, 880, 1320].forEach((f, i) => this.tone({ f, type: 'triangle', dur: 0.12, vol: 0.3, delay: i * 0.08 })); }
+  tap()      { this.tone({ f: 700, type: 'triangle', dur: 0.04, vol: 0.15 }); }
   levelClear() { [392, 523, 659, 784, 1046, 1318].forEach((f, i) => this.tone({ f, type: 'triangle', dur: 0.2, vol: 0.4, delay: i * 0.1 })); }
   hurry()    { this.tone({ f: 660, type: 'square', dur: 0.1, vol: 0.3 }); this.tone({ f: 660, type: 'square', dur: 0.1, vol: 0.3, delay: 0.15 }); }
   gameOver() { [440, 415, 392, 349, 330, 262].forEach((f, i) => this.tone({ f, type: 'sawtooth', dur: 0.35, vol: 0.35, delay: i * 0.25 })); }

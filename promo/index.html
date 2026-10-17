@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VOLFAI — Alanı ele geçir, uzaylıları kuşat</title>
+  <meta name="description" content="VOLFAI: Efsanevi Volfied'in telefonlar için modern yeniden yapımı. 30 bölüm, 211 parkur, HEPCOIN ve hangar yükseltmeleri. Tarayıcıda ücretsiz oyna.">
+  <meta property="og:title" content="VOLFAI">
+  <meta property="og:description" content="Volfied'in dokunmatik yeniden doğuşu. 30 bölüm, HEPCOIN, hangar.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#04060d">
+  <style>
+    :root { --bg:#04060d; --panel:#0b1020; --cyan:#5de4ff; --pink:#ff5d8f; --yellow:#ffd23f; --coin:#ffcc33; --text:#e8f1ff; --dim:#8a9bc0; }
+    * { box-sizing:border-box; }
+    html,body { margin:0; background:var(--bg); color:var(--text); font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif; line-height:1.5; }
+    a { color:var(--cyan); }
+    .wrap { max-width:1040px; margin:0 auto; padding:0 20px; }
+    header { position:relative; overflow:hidden; padding:72px 0 56px; background:radial-gradient(900px 500px at 70% -10%, #1a2a66 0%, transparent 60%), radial-gradient(700px 400px at 10% 110%, #3a1030 0%, transparent 60%); }
+    .stars { position:absolute; inset:0; background-image:radial-gradient(1px 1px at 20% 30%, #fff8 0, transparent 2px), radial-gradient(1px 1px at 70% 20%, #fff6 0, transparent 2px), radial-gradient(1.5px 1.5px at 40% 80%, #fff7 0, transparent 2px), radial-gradient(1px 1px at 85% 65%, #fff5 0, transparent 2px), radial-gradient(1px 1px at 55% 50%, #fff6 0, transparent 2px); background-size:300px 300px; opacity:.7; }
+    .hero { position:relative; display:grid; grid-template-columns:1.1fr .9fr; gap:40px; align-items:center; }
+    .logo { font-size:clamp(56px,10vw,104px); font-weight:900; letter-spacing:.12em; line-height:1; background:linear-gradient(90deg,var(--cyan),#fff,var(--pink)); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 0 24px rgba(93,228,255,.45)); }
+    .tag { color:var(--dim); letter-spacing:.08em; margin:8px 0 18px; font-size:15px; text-transform:uppercase; }
+    h1 { font-size:clamp(26px,4vw,40px); margin:0 0 14px; font-weight:800; }
+    .lead { color:#c9d6f2; font-size:17px; max-width:520px; }
+    .cta { display:inline-block; margin-top:22px; padding:16px 34px; border-radius:14px; font-weight:800; letter-spacing:.12em; font-size:17px; color:#04060d; background:linear-gradient(90deg,var(--cyan),#3aa8ff); text-decoration:none; box-shadow:0 0 30px rgba(93,228,255,.45); }
+    .cta.ghost { background:transparent; color:var(--text); border:1px solid #2a3a60; box-shadow:none; margin-left:10px; }
+    .note { font-size:13px; color:var(--dim); margin-top:12px; }
+    .phone { justify-self:center; width:min(300px,80vw); aspect-ratio:9/19; border-radius:36px; border:8px solid #1a2240; background:#000; position:relative; box-shadow:0 30px 80px rgba(0,0,0,.6), 0 0 0 1px #2a3a60; overflow:hidden; }
+    .phone .screen { position:absolute; inset:0; background:#04060d; }
+    .phone .field { position:absolute; left:6%; right:6%; top:12%; bottom:16%; border:3px solid var(--cyan); background:#070a16; box-shadow:0 0 20px rgba(93,228,255,.3); }
+    .phone .claimed { position:absolute; left:0; bottom:0; width:58%; height:34%; background:linear-gradient(160deg,#2a4a9a,#0d1a3a); border-top:3px solid var(--cyan); border-right:3px solid var(--cyan); }
+    .phone .claimed::after { content:""; position:absolute; right:14%; top:-30%; width:60px; height:60px; border-radius:50%; background:radial-gradient(circle at 35% 35%,#8fd0ff,#1d4a9a 60%,#0a1a40); box-shadow:inset -10px -10px 20px #0008; }
+    .phone .trail { position:absolute; left:58%; bottom:34%; width:3px; height:28%; background:var(--pink); box-shadow:0 0 8px var(--pink); }
+    .phone .ship { position:absolute; left:calc(58% - 7px); bottom:calc(62% - 2px); width:0; height:0; border-left:8px solid transparent; border-right:8px solid transparent; border-bottom:18px solid #ffd1df; filter:drop-shadow(0 0 6px var(--pink)); }
+    .phone .boss { position:absolute; left:40%; top:22%; width:54px; height:54px; background:#ff8a3d; clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%); box-shadow:0 0 20px #ff8a3d; animation:spin 6s linear infinite; }
+    .phone .coin { position:absolute; width:16px; height:16px; border-radius:50%; background:radial-gradient(circle at 35% 35%,#fff3b0,#ffcc33 60%,#b8860b); box-shadow:0 0 10px var(--coin); }
+    .phone .hud { position:absolute; top:3%; left:6%; right:6%; display:flex; justify-content:space-between; font-size:10px; color:var(--dim); letter-spacing:.1em; }
+    .phone .hud b { display:block; color:var(--text); font-size:14px; }
+    .phone .hud .p { color:var(--cyan); font-size:18px; font-weight:900; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    section { padding:56px 0; border-top:1px solid #121a30; }
+    h2 { font-size:13px; letter-spacing:.3em; color:var(--cyan); margin:0 0 22px; text-transform:uppercase; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; }
+    .card { background:var(--panel); border:1px solid #1c2846; border-radius:18px; padding:20px; }
+    .card .ic { font-size:28px; margin-bottom:8px; }
+    .card h3 { margin:0 0 6px; font-size:16px; letter-spacing:.04em; }
+    .card p { margin:0; color:var(--dim); font-size:14px; }
+    .steps { counter-reset:s; display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; }
+    .steps div { background:var(--panel); border:1px solid #1c2846; border-radius:18px; padding:20px 20px 20px 62px; position:relative; font-size:14px; color:#c9d6f2; }
+    .steps div::before { counter-increment:s; content:counter(s); position:absolute; left:18px; top:16px; width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,var(--cyan),#3aa8ff); color:#04060d; font-weight:900; display:grid; place-items:center; }
+    .powers { display:flex; flex-wrap:wrap; gap:10px; }
+    .pw { display:flex; align-items:center; gap:10px; background:var(--panel); border:1px solid #1c2846; border-radius:14px; padding:10px 14px; font-size:14px; }
+    .pw b { width:34px; height:34px; border-radius:8px; display:grid; place-items:center; color:#04060d; font-weight:900; }
+    .stat { text-align:center; }
+    .stat b { display:block; font-size:40px; font-weight:900; color:var(--yellow); }
+    .stat span { color:var(--dim); font-size:13px; letter-spacing:.1em; text-transform:uppercase; }
+    footer { padding:40px 0 60px; color:var(--dim); font-size:13px; border-top:1px solid #121a30; }
+    @media (max-width:760px) { .hero { grid-template-columns:1fr; } .phone { order:-1; } header { padding:40px 0; } }
+  </style>
+</head>
+<body>
+<header>
+  <div class="stars"></div>
+  <div class="wrap hero">
+    <div>
+      <div class="logo">VOLFAI</div>
+      <div class="tag">Volfied'in dokunmatik yeniden doğuşu</div>
+      <h1>Alanı ele geçir. Uzaylıları kuşat. Gemini güçlendir.</h1>
+      <p class="lead">1989'un efsanevi arcade klasiği Volfied, telefonun için baştan yaratıldı. Parmağını sürükle, hat çiz, boss'un olmadığı tarafı kendine kat. 30 bölüm, 211 parkur, HEPCOIN ve hangar yükseltmeleriyle.</p>
+      <a class="cta" id="play" href="https://www.hepgo.com/static/volfai/index.html">HEMEN OYNA</a>
+      <a class="cta ghost" href="#nasil">NASIL OYNANIR</a>
+      <p class="note">Kurulum yok. Tarayıcıda açılır, ana ekrana eklenir, çevrimdışı çalışır. Mastertool hesabınla ilerlemen tüm cihazlarında eşitlenir.</p>
+    </div>
+    <div class="phone" aria-hidden="true">
+      <div class="screen">
+        <div class="hud"><div>SKOR<b>12.480</b></div><div class="p">42%</div><div>HEPCOIN<b style="color:#ffcc33">37</b></div></div>
+        <div class="field">
+          <div class="boss"></div>
+          <div class="coin" style="left:70%;top:40%"></div>
+          <div class="coin" style="left:22%;top:50%"></div>
+          <div class="claimed"></div>
+          <div class="trail"></div>
+          <div class="ship"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="wrap">
+  <h2>Neden VOLFAI</h2>
+  <div class="grid">
+    <div class="card"><div class="ic">👆</div><h3>Yüzen joystick</h3><p>Parmağını ekranın herhangi bir yerine koy, sürükle. Köşe dönüş yardımıyla hassas çizim, tek elle oyun.</p></div>
+    <div class="card"><div class="ic">🪐</div><h3>30 bölüm, 211 parkur</h3><p>Her bölümde 5 ile 10 parkur. Zorluk sürekli artar; son parkurda büyük boss, ileri bölümlerde çift boss.</p></div>
+    <div class="card"><div class="ic">★</div><h3>Onur puanı</h3><p>Parkuru %80'in üstünde bitir, hiç can kaybetme, boss'u lazerle yok et. Yeterli onur toplayınca sonraki bölüm açılır.</p></div>
+    <div class="card"><div class="ic">🪙</div><h3>HEPCOIN</h3><p>Parkurlarda rastgele düşer. Hattınla üstünden geç ya da kuşat; kasanda birikir.</p></div>
+    <div class="card"><div class="ic">🚀</div><h3>Hangar</h3><p>İyon motoru, kalkan jeneratörü, lazer çekirdeği, yedek güç hücresi, zaman dilatörü, coin mıknatısı. Her biri 3 seviye.</p></div>
+    <div class="card"><div class="ic">🛡</div><h3>Koruma halkası</h3><p>Kenardayken gemiyi saran mavi halka güvende olduğunu söyler. Boş alana girince halka kalkar: artık savunmasızsın.</p></div>
+  </div>
+</section>
+
+<section class="wrap" id="nasil">
+  <h2>Nasıl oynanır</h2>
+  <div class="steps">
+    <div><b>Sürükle.</b> Gemi parmağının yönüne gider. Kenarda dolaşırken güvendesin.</div>
+    <div><b>Hat çiz.</b> Boş alana gir. Kenara geri döndüğünde boss'un olmadığı taraf senin olur; içeride kalan küçük düşmanlar yok olur.</div>
+    <div><b>%80'i al.</b> Parkur biter. Fazlası onur puanı ve skor bonusu. Süre dolarsa düşmanlar hızlanır.</div>
+    <div><b>Kutuları kuşat.</b> Harfli kutular güç verir. Hepsini kuşatırsan süper silah açılır. Lazerle boss'u yok et: Özel Bitiriş.</div>
+  </div>
+</section>
+
+<section class="wrap">
+  <h2>Güçlendirmeler</h2>
+  <div class="powers">
+    <div class="pw"><b style="background:#ffd23f">S</b>Hız</div>
+    <div class="pw"><b style="background:#5de4ff">T</b>Düşmanları dondur</div>
+    <div class="pw"><b style="background:#ff5d8f">L</b>Lazer (otomatik nişan)</div>
+    <div class="pw"><b style="background:#9bff8a">P</b>Kalkan</div>
+    <div class="pw"><b style="background:#fff">E</b>Ek can</div>
+    <div class="pw"><b style="background:#ffa94d">B</b>Bonus + HEPCOIN</div>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="grid">
+    <div class="stat"><b>30</b><span>Bölüm</span></div>
+    <div class="stat"><b>211</b><span>Parkur</span></div>
+    <div class="stat"><b>6</b><span>Yükseltme</span></div>
+    <div class="stat"><b>0 ₺</b><span>Ücretsiz</span></div>
+  </div>
+</section>
+
+<footer class="wrap">
+  VOLFAI, Taito'nun 1989 tarihli Volfied oyunundan ilham alan bağımsız bir hayran yapımıdır. Volfied ve Qix, Taito'nun tescilli markalarıdır.<br>
+  Mastertool ailesinin bir parçası · <a href="https://mastertool.download/">mastertool.download</a>
+</footer>
+</body>
+</html>

@@ -4,6 +4,22 @@ Taito'nun klasik MS-DOS / arcade oyunu **Volfied**'in (Qix'in devamı) modern, d
 telefonlar için yeniden yapımı. Kurulum gerektirmez: tarayıcıda çalışır, PWA olarak ana
 ekrana eklenebilir, çevrimdışı oynanır.
 
+## Kampanya
+
+- **30 bölüm**, her bölümde **5-10 parkur** (toplam 211). Zorluk sürekli artar; her bölümün
+  son parkuru boss parkurudur, 12. bölümden sonra çift boss çıkabilir.
+- **Onur puanı:** parkuru bitirmek 10, %80 üstü her yüzde +1 (en fazla 20), Özel Bitiriş +10,
+  can kaybetmemek +5. Bir sonraki bölüm için bölümdeki parkur başına 15 onur gerekir; parkurlar
+  tekrar oynanarak en iyi sonuç yükseltilebilir.
+- **Bölüm seçme ekranı:** kaydırmalı kartlar, her bölümün sanatı, onur çubuğu, parkur ızgarası.
+  Oyun her açılışta buradan başlar; otomatik "kaldığın yerden devam" yoktur.
+- **HEPCOIN:** parkurda rastgele düşer, hatla üstünden geçince ya da kuşatınca toplanır; parkur
+  sonu ve boss ödülleri de verir. Kasada birikir.
+- **Hangar:** İyon motoru, kalkan jeneratörü, lazer çekirdeği, yedek güç hücresi, zaman dilatörü,
+  coin mıknatısı. Her biri 3 seviye.
+- **Koruma halkası:** kenardayken gemiyi saran mavi halka; çizime geçince kaybolur.
+- **Hesap:** misafir (yerel) veya Mastertool hesabı. API ayrıntıları `docs/MASTERTOOL_API.md`.
+
 ## Oynanış
 
 - **Sürükle:** Parmağını ekranın herhangi bir yerine koyup sürükle, gemi o yöne gider.
@@ -41,12 +57,14 @@ js/config.js          sabitler (ızgara, puanlar, güçlendirmeler)
 js/grid.js            ızgara, hat, flood-fill ile alan kapatma (saf, test edilebilir)
 js/game.js            oyun durumu: oyuncu, boss, küçük düşmanlar, fitil, lazer, bölüm akışı
 js/render.js          canvas çizimi (maske ile bölüm sanatı ortaya çıkarma)
-js/levels.js          16 bölüm tanımı + prosedürel arka plan sanatı
+js/levels.js          30 bölüm × 5-10 parkur tanımı + prosedürel arka plan sanatı
 js/input.js           yüzen dokunmatik joystick + klavye
 js/audio.js           WebAudio ile sentezlenmiş sesler
-js/storage.js         rekor ve ayarlar (localStorage)
+js/profile.js         ilerleme, onur, HEPCOIN, yükseltmeler (saf, test edilebilir)
+js/account.js         misafir/Mastertool hesap ve eşitleme
+promo/index.html      tanıtım (landing) sayfası
 sw.js, manifest.webmanifest, icons/   PWA
-test/grid.test.mjs    birim testleri
+test/*.test.mjs       birim testleri (ızgara, profil, bölümler)
 docs/ARASTIRMA.md     Volfied araştırma notları ve tasarım kararları
 ```
 

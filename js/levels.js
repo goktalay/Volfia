@@ -1,5 +1,6 @@
-// VOLFAI - 16 bölüm tanımı ve her bölüm için prosedürel "gezegen" sanatı
+// VOLFAI - 30 bölüm × 5-10 parkur kampanyası ve prosedürel "gezegen" sanatı
 // Volfied'de her bölümün kendine özgü arka planı vardır; alan kapattıkça ortaya çıkar.
+import { LEVEL_COUNT, PARKUR_MIN, PARKUR_MAX } from './config.js';
 
 export function mulberry32(seed) {
   let a = seed >>> 0;
@@ -12,38 +13,84 @@ export function mulberry32(seed) {
   };
 }
 
-// Her bölüm: isim, boss tipi, renkler, zorluk parametreleri
+const ARTS = ['planet', 'desert', 'ice', 'nebula', 'rings', 'city', 'lava', 'moon', 'asteroids', 'ocean', 'storm', 'crystal', 'twinsun', 'blackhole', 'mothership', 'home'];
+const BOSSES = ['amoeba', 'crystal', 'spiker'];
+
+// 30 bölüm: ad, sanat teması, renk tonu
 export const LEVELS = [
-  { name: 'VOLFAI YÖRÜNGESİ', boss: 'amoeba',  bossR: 4.5, bossSpeed: 14, smalls: 2, smallSpeed: 10, shoot: 0,    time: 150, blocks: 2, hue: 200, art: 'planet' },
-  { name: 'KIZIL ÇÖL',        boss: 'amoeba',  bossR: 4.5, bossSpeed: 16, smalls: 3, smallSpeed: 12, shoot: 0,    time: 140, blocks: 2, hue: 15,  art: 'desert' },
-  { name: 'BUZ KUŞAĞI',       boss: 'crystal', bossR: 5,   bossSpeed: 17, smalls: 3, smallSpeed: 13, shoot: 0,    time: 140, blocks: 3, hue: 190, art: 'ice' },
-  { name: 'NEBULA GEÇİDİ',    boss: 'crystal', bossR: 5,   bossSpeed: 18, smalls: 4, smallSpeed: 14, shoot: 0.15, time: 130, blocks: 3, hue: 280, art: 'nebula' },
-  { name: 'HALKALI DEV',      boss: 'spiker',  bossR: 5.5, bossSpeed: 19, smalls: 4, smallSpeed: 15, shoot: 0.2,  time: 130, blocks: 3, hue: 40,  art: 'rings' },
-  { name: 'TERK EDİLMİŞ ŞEHİR', boss: 'spiker', bossR: 5.5, bossSpeed: 20, smalls: 5, smallSpeed: 16, shoot: 0.25, time: 125, blocks: 3, hue: 160, art: 'city' },
-  { name: 'LAV DENİZİ',       boss: 'amoeba',  bossR: 6,   bossSpeed: 22, smalls: 5, smallSpeed: 17, shoot: 0.3,  time: 120, blocks: 4, hue: 5,   art: 'lava' },
-  { name: 'AY TÜNELLERİ',     boss: 'crystal', bossR: 6,   bossSpeed: 23, smalls: 6, smallSpeed: 18, shoot: 0.3,  time: 120, blocks: 4, hue: 220, art: 'moon' },
-  { name: 'ASTEROİT KUŞAĞI',  boss: 'spiker',  bossR: 6,   bossSpeed: 24, smalls: 6, smallSpeed: 19, shoot: 0.35, time: 115, blocks: 4, hue: 30,  art: 'asteroids' },
-  { name: 'YEŞİL OKYANUS',    boss: 'amoeba',  bossR: 6.5, bossSpeed: 25, smalls: 7, smallSpeed: 20, shoot: 0.4,  time: 115, blocks: 4, hue: 140, art: 'ocean' },
-  { name: 'FIRTINA GEZEGENİ', boss: 'crystal', bossR: 6.5, bossSpeed: 26, smalls: 7, smallSpeed: 21, shoot: 0.45, time: 110, blocks: 4, hue: 250, art: 'storm' },
-  { name: 'KRİSTAL MAĞARA',   boss: 'spiker',  bossR: 7,   bossSpeed: 27, smalls: 8, smallSpeed: 22, shoot: 0.5,  time: 110, blocks: 5, hue: 300, art: 'crystal' },
-  { name: 'ÇİFT GÜNEŞ',       boss: 'amoeba',  bossR: 7,   bossSpeed: 28, smalls: 8, smallSpeed: 23, shoot: 0.55, time: 105, blocks: 5, hue: 50,  art: 'twinsun' },
-  { name: 'KARA DELİK',       boss: 'crystal', bossR: 7,   bossSpeed: 30, smalls: 9, smallSpeed: 24, shoot: 0.6,  time: 105, blocks: 5, hue: 270, art: 'blackhole' },
-  { name: 'ANA GEMİ',         boss: 'spiker',  bossR: 7.5, bossSpeed: 31, smalls: 9, smallSpeed: 25, shoot: 0.7,  time: 100, blocks: 5, hue: 0,   art: 'mothership' },
-  { name: 'VOLFAI: EVE DÖNÜŞ', boss: 'amoeba', bossR: 8,   bossSpeed: 33, smalls: 10, smallSpeed: 26, shoot: 0.8, time: 100, blocks: 6, hue: 205, art: 'home' },
+  { name: 'VOLFAI YÖRÜNGESİ',   art: 'planet',     hue: 200 },
+  { name: 'KIZIL ÇÖL',          art: 'desert',     hue: 15 },
+  { name: 'BUZ KUŞAĞI',         art: 'ice',        hue: 190 },
+  { name: 'NEBULA GEÇİDİ',      art: 'nebula',     hue: 280 },
+  { name: 'HALKALI DEV',        art: 'rings',      hue: 40 },
+  { name: 'TERK EDİLMİŞ ŞEHİR', art: 'city',       hue: 160 },
+  { name: 'LAV DENİZİ',         art: 'lava',       hue: 5 },
+  { name: 'AY TÜNELLERİ',       art: 'moon',       hue: 220 },
+  { name: 'ASTEROİT KUŞAĞI',    art: 'asteroids',  hue: 30 },
+  { name: 'YEŞİL OKYANUS',      art: 'ocean',      hue: 140 },
+  { name: 'FIRTINA GEZEGENİ',   art: 'storm',      hue: 250 },
+  { name: 'KRİSTAL MAĞARA',     art: 'crystal',    hue: 300 },
+  { name: 'ÇİFT GÜNEŞ',         art: 'twinsun',    hue: 50 },
+  { name: 'KARA DELİK',         art: 'blackhole',  hue: 270 },
+  { name: 'ANA GEMİ',           art: 'mothership', hue: 0 },
+  { name: 'GÖLGE KUŞAĞI',       art: 'nebula',     hue: 330 },
+  { name: 'DEMİR GEZEGEN',      art: 'asteroids',  hue: 20 },
+  { name: 'KUTUP İSTASYONU',    art: 'ice',        hue: 210 },
+  { name: 'PLAZMA DENİZİ',      art: 'lava',       hue: 290 },
+  { name: 'GAZ DEVİ',           art: 'storm',      hue: 35 },
+  { name: 'AYNA OKYANUSU',      art: 'ocean',      hue: 180 },
+  { name: 'ZÜMRÜT ŞEHİR',       art: 'city',       hue: 120 },
+  { name: 'ÇİFTE HALKA',        art: 'rings',      hue: 320 },
+  { name: 'ÖLÜ YILDIZ',         art: 'moon',       hue: 60 },
+  { name: 'SAFİR MAĞARA',       art: 'crystal',    hue: 230 },
+  { name: 'ÜÇLÜ GÜNEŞ',         art: 'twinsun',    hue: 10 },
+  { name: 'OLAY UFKU',          art: 'blackhole',  hue: 200 },
+  { name: 'KOMUTA GEMİSİ',      art: 'mothership', hue: 350 },
+  { name: 'SON SAVUNMA HATTI',  art: 'desert',     hue: 45 },
+  { name: 'VOLFAI: EVE DÖNÜŞ',  art: 'home',       hue: 205 },
 ];
 
-export function levelDef(n) {
-  // 16'dan sonra döngü + zorluk artışı
-  const base = LEVELS[(n - 1) % LEVELS.length];
-  const loop = Math.floor((n - 1) / LEVELS.length);
-  if (!loop) return { ...base, index: n };
+export function levelInfo(L) {
+  const i = Math.max(1, Math.min(LEVEL_COUNT, L)) - 1;
+  return { ...LEVELS[i], no: i + 1, parkurs: parkurCount(i + 1) };
+}
+
+/** Bölümdeki parkur sayısı: 1. bölümde 5, 30. bölümde 10, arada doğrusal artar. */
+export function parkurCount(L) {
+  const t = (L - 1) / (LEVEL_COUNT - 1);
+  return Math.min(PARKUR_MAX, Math.max(PARKUR_MIN, PARKUR_MIN + Math.floor(t * (PARKUR_MAX - PARKUR_MIN) + 1e-9)));
+}
+
+/** Toplam parkur sayısı (ilerleme yüzdesi için). */
+export function totalParkurs() { let n = 0; for (let L = 1; L <= LEVEL_COUNT; L++) n += parkurCount(L); return n; }
+
+/**
+ * Bir parkurun oyun parametreleri. Zorluk, bölüm ve parkur ile sürekli artar.
+ * @param {number} L bölüm (1..30)
+ * @param {number} p parkur (1..parkurCount(L))
+ */
+export function parkurDef(L, p) {
+  const info = levelInfo(L);
+  const n = info.parkurs;
+  // küresel zorluk 0..1: bölüm ağırlıklı, parkur içi ince artış
+  const d = Math.min(1, ((L - 1) + (p - 1) / n) / LEVEL_COUNT);
+  const rng = mulberry32(L * 1000 + p * 17 + 3);
+  const isBossParkur = p === n;                  // bölümün son parkuru: daha büyük boss, daha az kutu
+  const lerp = (a, b) => a + (b - a) * d;
   return {
-    ...base, index: n,
-    bossSpeed: base.bossSpeed + loop * 6,
-    smallSpeed: base.smallSpeed + loop * 5,
-    smalls: base.smalls + loop * 2,
-    shoot: Math.min(1.2, base.shoot + loop * 0.2),
-    time: Math.max(70, base.time - loop * 15),
+    L, p, n, index: L * 100 + p, isBossParkur,
+    name: info.name, art: info.art,
+    hue: (info.hue + (p - 1) * 9) % 360,
+    boss: BOSSES[(L + p) % BOSSES.length],
+    bossR: lerp(4.5, 8) + (isBossParkur ? 1 : 0),
+    bossSpeed: lerp(14, 36) + (isBossParkur ? 3 : 0),
+    bossHp: Math.round(lerp(40, 160) * (isBossParkur ? 1.5 : 1)),
+    smalls: Math.round(lerp(2, 10)) + (isBossParkur ? 1 : 0),
+    smallSpeed: lerp(10, 28),
+    shoot: L <= 2 ? 0 : lerp(0, 0.9),
+    time: Math.round(lerp(150, 90)),
+    blocks: isBossParkur ? 2 : Math.round(lerp(2, 6)),
+    dualBoss: L >= 12 && isBossParkur && rng() < 0.6,  // ileri bölümlerde iki boss
   };
 }
 
@@ -72,7 +119,6 @@ function planet(ctx, x, y, r, hue, rng, opts = {}) {
   g.addColorStop(0.6, hsl(hue, 65, 45));
   g.addColorStop(1, hsl(hue, 60, 15));
   ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-  // bantlar / kıtalar
   ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.clip();
   const bands = opts.bands ?? 5;
   for (let i = 0; i < bands; i++) {
@@ -94,12 +140,10 @@ function planet(ctx, x, y, r, hue, rng, opts = {}) {
       ctx.closePath(); ctx.fill();
     }
   }
-  // gölge
   const sh = ctx.createRadialGradient(x + r * 0.5, y + r * 0.4, r * 0.3, x, y, r * 1.05);
   sh.addColorStop(0, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,0.75)');
   ctx.fillStyle = sh; ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
   ctx.restore();
-  // atmosfer
   ctx.strokeStyle = hsl(hue, 80, 70, 0.5); ctx.lineWidth = r * 0.06;
   ctx.beginPath(); ctx.arc(x, y, r * 1.02, 0, Math.PI * 2); ctx.stroke();
 }
@@ -165,7 +209,7 @@ function craters(ctx, w, h, hue, rng, n) {
   }
 }
 
-/** Bölüm arka plan sanatını (w x h piksel) üretir. */
+/** Bölüm/parkur arka plan sanatını (w x h piksel) üretir. def: {index, hue, art} */
 export function drawLevelArt(ctx, w, h, def) {
   const rng = mulberry32(def.index * 7919 + 17);
   const hue = def.hue;

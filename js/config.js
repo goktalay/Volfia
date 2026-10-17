@@ -36,3 +36,42 @@ export const SCORE = {
   PER_SECOND_LEFT: 50,
   BONUS_BOX: 2500,
 };
+
+// ---- Kampanya: 30 bölüm, her bölümde 5-10 parkur ----
+export const LEVEL_COUNT = 30;
+export const PARKUR_MIN = 5;
+export const PARKUR_MAX = 10;
+
+// Onur puanı: parkur bitirince kazanılır; bir sonraki bölümün kilidini açmak için gerekir
+export const HONOR = {
+  CLEAR: 10,            // parkuru bitirmek
+  PER_PERCENT_OVER: 1,  // %80 üstü her yüzde (en fazla 20)
+  SPECIAL: 10,          // boss'u lazerle yok etmek
+  NO_DEATH: 5,          // hiç can kaybetmeden
+  PER_PARKUR_REQUIRED: 15, // sonraki bölüm için parkur başına gereken onur
+};
+
+// HEPCOIN
+export const COIN = {
+  SPAWN_MIN: 5,    // sn
+  SPAWN_MAX: 11,
+  MAX_ON_FIELD: 3,
+  LIFETIME: 14,    // sn, sonra kaybolur
+  VALUES: [1, 1, 1, 2, 2, 3, 5],
+};
+
+// Hangar yükseltmeleri (HEPCOIN ile)
+export const UPGRADES = {
+  engine:  { name: 'İYON MOTORU',       desc: 'Gemi hızı +%8 / seviye',            icon: '⚡', costs: [60, 140, 280] },
+  shield:  { name: 'KALKAN JENERATÖRÜ', desc: 'Parkura kalkanla başla; 3. seviyede 2 kalkan', icon: '🛡', costs: [80, 180, 340] },
+  laser:   { name: 'LAZER ÇEKİRDEĞİ',   desc: 'Lazer süresi +3 sn / seviye, hasar artar', icon: '🔺', costs: [70, 160, 300] },
+  cells:   { name: 'YEDEK GÜÇ HÜCRESİ', desc: 'Başlangıç canı +1 / seviye',        icon: '♥', costs: [100, 220, 400] },
+  time:    { name: 'ZAMAN DİLATÖRÜ',    desc: 'Parkur süresi +15 sn / seviye',     icon: '⏱', costs: [50, 120, 240] },
+  magnet:  { name: 'COIN MIKNATISI',    desc: 'HEPCOIN daha sık ve daha değerli düşer', icon: '◎', costs: [90, 200, 360] },
+};
+
+// Mastertool hesap bütünleşmesi (boş bırakılırsa yalnız yerel misafir profili çalışır)
+export const MASTERTOOL = {
+  API_BASE: '',                 // ör. 'https://mastertool.download/api/volfai'
+  REGISTER_URL: 'https://mastertool.download/',
+};

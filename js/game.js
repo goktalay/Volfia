@@ -1,58 +1,68 @@
 // VOLFAI - oyun durumu ve güncelleme mantığı
-import { GRID_W, GRID_H, CELL, CLEAR_PERCENT, BASE_PLAYER_SPEED, SPEED_BOOST_MULT, FUSE_SPEED_RATIO, LIVES_START, POWERUPS, SCORE } from './config.js';
+import { GRID_W, GRID_H, CELL, CLEAR_PERCENT, BASE_PLAYER_SPEED, SPEED_BOOST_MULT, FUSE_SPEED_RATIO, LIVES_START, POWERUPS, SCORE, COIN } from './config.js';
 import { Grid } from './grid.js';
-import { levelDef, mulberry32 } from './levels.js';
+import { parkurDef, parkurCount, mulberry32 } from './levels.js';
+import { upgradeEffects, recordParkur, addCoins } from './profile.js';
 import { DIR, DIR_VEC } from './input.js';
 
-export const STATE = { TITLE: 'title', INTRO: 'intro', PLAY: 'play', DYING: 'dying', CLEAR: 'clear', GAMEOVER: 'gameover', PAUSE: 'pause' };
+export const STATE = { TITLE: 'title', MENU: 'menu', INTRO: 'intro', PLAY: 'play', DYING: 'dying', CLEAR: 'clear', GAMEOVER: 'gameover', PAUSE: 'pause' };
 
 export class Game {
-  constructor(sfx, storage) {
+  constructor(sfx, account) {
     this.sfx = sfx;
-    this.storage = storage;
+    this.account = account;
     this.grid = new Grid(GRID_W, GRID_H);
     this.state = STATE.TITLE;
-    this.hiScore = storage.getHiScore();
-    this.events = [];          // render/ui tarafına bildirimler
+    this.events = [];
     this.rng = mulberry32(Date.now() & 0xffff);
-    this.levelNo = 1;
     this.score = 0;
     this.lives = LIVES_START;
     this.stateTime = 0;
-    this.gridVersion = 0;      // grid değişince artar (maske yenileme)
-    this.particles = [];
-    this.texts = [];
+    this.gridVersion = 0;
+    this.particles = []; this.texts = [];
     this.shake = 0;
+    this.def = null;
+    this.bosses = [];
+    this.smalls = []; this.shots = []; this.beams = []; this.coins = [];
+    this.powers = { S: 0, T: 0, L: 0 };
+    this.shields = 0;
+    this.fuse = { active: false, idx: 0 };
   }
+  get profile() { return this.account.profile; }
+  get hiScore() { return this.profile.hiScore; }
 
   emit(type, data = {}) { this.events.push({ type, ...data }); }
-
-  // ---------------- oyun / bölüm kurulumu ----------------
-  newGame() {
-    this.score = 0;
-    this.lives = LIVES_START;
-    this.levelNo = 1;
-    this.startLevel(this.levelNo);
+  setState(s) { this.state = s; this.stateTime = 0; this.emit('state', { state: s }); }
+  togglePause() {
+    if (this.state === STATE.PLAY) this.setState(STATE.PAUSE);
+    else if (this.state === STATE.PAUSE) this.setState(STATE.PLAY);
   }
+  toMenu() { this.def = null; this.setState(STATE.MENU); }
 
-  startLevel(n) {
-    const def = levelDef(n);
-    this.def = def;
-    this.levelNo = n;
+  // ---------------- parkur kurulumu ----------------
+  startParkur(L, p) {
+    const def = parkurDef(L, p);
+    const fx = upgradeEffects(this.profile);
+    this.def = def; this.fx = fx;
+    this.L = L; this.p = p;
+    this.score = 0;
+    this.lives = LIVES_START + fx.extraLives;
+    this.deaths = 0;
+    this.coinsRun = 0;
     this.grid.reset();
-    this.rng = mulberry32(n * 1337 + 7);
+    this.rng = mulberry32(L * 1337 + p * 101 + 7);
     this.gridVersion++;
-    this.timeLeft = def.time;
+    this.timeLeft = def.time + fx.extraTime;
     this.hurry = false;
-    this.particles = []; this.texts = []; this.shots = []; this.beams = [];
+    this.particles = []; this.texts = []; this.shots = []; this.beams = []; this.coins = [];
     this.powers = { S: 0, T: 0, L: 0 };
-    this.shield = false;
+    this.shields = fx.startShields;
+    this.shieldRegenT = fx.shieldRegen;
     this.superWeapon = false;
     this.allBlocksBonusGiven = false;
     this.laserCooldown = 0;
-    this.bigClaimed = 0;
+    this.coinT = this.coinDelay();
 
-    // kutular: kenardan uzak, birbirinden ayrık
     for (let i = 0; i < def.blocks; i++) {
       for (let t = 0; t < 60; t++) {
         const size = 4;
@@ -60,44 +70,45 @@ export class Game {
         const y = 10 + Math.floor(this.rng() * (GRID_H - 20 - size));
         let ok = true;
         for (const b of this.grid.blocks) if (Math.abs(b.x - x) < 10 && Math.abs(b.y - y) < 10) ok = false;
-        // merkez bölgesi boss için boş kalsın
         if (Math.abs(x - GRID_W / 2) < 10 && Math.abs(y - GRID_H / 2) < 12) ok = false;
+        if (def.dualBoss && Math.abs(x - GRID_W / 2) < 10 && Math.abs(y - GRID_H / 4) < 12) ok = false;
         if (ok) { this.grid.addBlock(x, y, size); break; }
       }
     }
 
-    // oyuncu: alt kenar ortası
-    this.player = {
-      x: GRID_W >> 1, y: GRID_H - 1, dir: DIR.NONE, face: DIR.UP,
-      drawing: false, trail: [], start: null, acc: 0, invuln: 2.0, idle: 0,
-    };
-    // boss
-    const a = this.rng() * Math.PI * 2;
-    this.boss = {
-      x: GRID_W / 2, y: GRID_H / 2, r: def.bossR, type: def.boss,
-      vx: Math.cos(a) * def.bossSpeed, vy: Math.sin(a) * def.bossSpeed,
-      speed: def.bossSpeed, turnT: 1.5, dashT: 0, shootT: 2 + this.rng() * 3,
-      hp: 40 + n * 10, maxHp: 40 + n * 10, hitFlash: 0, angle: 0, alive: true,
-    };
-    // küçük düşmanlar
+    this.player = { x: GRID_W >> 1, y: GRID_H - 1, dir: DIR.NONE, face: DIR.UP, drawing: false, trail: [], start: null, acc: 0, invuln: 2.0, idle: 0 };
+
+    this.bosses = [this.makeBoss(def, GRID_W / 2, GRID_H / 2, def.boss)];
+    if (def.dualBoss) {
+      const b2 = this.makeBoss(def, GRID_W / 2, GRID_H / 4, def.boss === 'amoeba' ? 'spiker' : 'amoeba');
+      b2.r *= 0.75; b2.hp = b2.maxHp = Math.round(def.bossHp * 0.6);
+      this.bosses.push(b2);
+    }
+
     this.smalls = [];
     for (let i = 0; i < def.smalls; i++) {
-      const p = this.grid.randomEmptyCell(this.rng, 6);
-      if (Math.hypot(p.x - this.boss.x, p.y - this.boss.y) < 12) { i--; continue; }
+      const c = this.grid.randomEmptyCell(this.rng, 6);
+      if (this.bosses.some(b => Math.hypot(c.x - b.x, c.y - b.y) < 12)) { i--; continue; }
       const ang = this.rng() * Math.PI * 2;
-      this.smalls.push({ x: p.x + 0.5, y: p.y + 0.5, vx: Math.cos(ang) * def.smallSpeed, vy: Math.sin(ang) * def.smallSpeed, speed: def.smallSpeed, alive: true, spin: this.rng() * 6 });
+      this.smalls.push({ x: c.x + 0.5, y: c.y + 0.5, vx: Math.cos(ang) * def.smallSpeed, vy: Math.sin(ang) * def.smallSpeed, speed: def.smallSpeed, alive: true, spin: this.rng() * 6 });
     }
     this.fuse = { active: false, idx: 0 };
     this.setState(STATE.INTRO);
-    this.emit('level', { def });
+    this.emit('parkur', { def });
+    this.emit('powers'); this.emit('lives'); this.emit('coins');
   }
 
-  setState(s) { this.state = s; this.stateTime = 0; this.emit('state', { state: s }); }
-
-  togglePause() {
-    if (this.state === STATE.PLAY) this.setState(STATE.PAUSE);
-    else if (this.state === STATE.PAUSE) this.setState(STATE.PLAY);
+  makeBoss(def, x, y, type) {
+    const a = this.rng() * Math.PI * 2;
+    return {
+      x, y, r: def.bossR, type,
+      vx: Math.cos(a) * def.bossSpeed, vy: Math.sin(a) * def.bossSpeed,
+      speed: def.bossSpeed, turnT: 1.5, dashT: 0, shootT: 2 + this.rng() * 3,
+      hp: def.bossHp, maxHp: def.bossHp, hitFlash: 0, angle: 0, alive: true,
+    };
   }
+
+  coinDelay() { return (COIN.SPAWN_MIN + this.rng() * (COIN.SPAWN_MAX - COIN.SPAWN_MIN)) / (this.fx?.coinRate || 1); }
 
   // ---------------- ana güncelleme ----------------
   update(dt, input) {
@@ -105,25 +116,15 @@ export class Game {
     this.stateTime += dt;
     this.updateFx(dt);
     switch (this.state) {
-      case STATE.INTRO:
-        if (this.stateTime > 2.2) this.setState(STATE.PLAY);
-        break;
-      case STATE.PLAY:
-        this.updatePlay(dt, input);
-        break;
-      case STATE.DYING:
-        if (this.stateTime > 1.3) this.afterDeath();
-        break;
-      case STATE.CLEAR:
-        if (this.stateTime > 3.2) this.startLevel(this.levelNo + 1);
-        break;
+      case STATE.INTRO: if (this.stateTime > 2.2) this.setState(STATE.PLAY); break;
+      case STATE.PLAY: this.updatePlay(dt, input); break;
+      case STATE.DYING: if (this.stateTime > 1.3) this.afterDeath(); break;
       default: break;
     }
   }
 
   updatePlay(dt, input) {
     const p = this.player;
-    // zamanlayıcı
     if (this.timeLeft > 0) {
       this.timeLeft -= dt;
       if (this.timeLeft <= 0) { this.timeLeft = 0; this.hurry = true; this.sfx.hurry(); this.emit('hurry'); this.floatText(GRID_W / 2, GRID_H / 2, 'ACELE ET!', '#ff5d5d', 2.2); }
@@ -131,23 +132,31 @@ export class Game {
     for (const k of ['S', 'T', 'L']) if (this.powers[k] > 0) { this.powers[k] -= dt; if (this.powers[k] <= 0) { this.powers[k] = 0; if (k === 'L') this.superWeapon = false; this.emit('powers'); } }
     if (p.invuln > 0) p.invuln -= dt;
     if (this.laserCooldown > 0) this.laserCooldown -= dt;
+    // kalkan yenilenmesi (yükseltme)
+    if (this.fx.shieldRegen && this.shields < Math.max(1, this.fx.startShields)) {
+      this.shieldRegenT -= dt;
+      if (this.shieldRegenT <= 0) { this.shields++; this.shieldRegenT = this.fx.shieldRegen; this.floatText(p.x, p.y - 3, 'KALKAN YENİLENDİ', '#9bff8a', 1.2); this.emit('powers'); }
+    }
 
     this.updatePlayer(dt, input);
     if (this.state !== STATE.PLAY) return;
     const frozen = this.powers.T > 0;
     const spd = this.hurry ? 1.6 : 1;
     if (!frozen) {
-      this.updateBoss(dt * spd);
+      for (const b of this.bosses) this.updateBoss(b, dt * spd);
+      if (this.state !== STATE.PLAY) return;
       this.updateSmalls(dt * spd);
       this.updateShots(dt * spd);
     }
     this.updateBeams(dt);
     this.updateFuse(dt);
+    this.updateCoins(dt);
     if ((input.fire || input.keyFire) && this.powers.L > 0 && this.laserCooldown <= 0) this.fireLaser();
   }
 
   // ---------------- oyuncu ----------------
-  playerSpeed() { return BASE_PLAYER_SPEED * (this.powers.S > 0 ? SPEED_BOOST_MULT : 1); }
+  playerSpeed() { return BASE_PLAYER_SPEED * this.fx.speedMult * (this.powers.S > 0 ? SPEED_BOOST_MULT : 1); }
+  isSafe() { return !this.player.drawing; }
 
   updatePlayer(dt, input) {
     const p = this.player;
@@ -175,23 +184,18 @@ export class Game {
         p.x = nx; p.y = ny; p.face = dir; return true;
       }
       if (v === CELL.EMPTY) {
-        // yeni hat başlat
         p.drawing = true; p.start = { x: p.x, y: p.y }; p.trail = [];
         this.fuse.active = false;
+        this.emit('safe', { safe: false });
         return this.extend(nx, ny, dir);
       }
       return false;
     }
-    // çizim halinde
     if (v === CELL.EMPTY) {
       if (!g.canExtendTrail(nx, ny, p.x, p.y)) return false;
       return this.extend(nx, ny, dir);
     }
-    if (v === CELL.CLAIMED) { // hattı kapat
-      p.x = nx; p.y = ny; p.face = dir;
-      this.closeTrail();
-      return true;
-    }
+    if (v === CELL.CLAIMED) { p.x = nx; p.y = ny; p.face = dir; this.closeTrail(); return true; }
     return false;
   }
 
@@ -201,14 +205,13 @@ export class Game {
     p.trail.push([nx, ny]);
     p.x = nx; p.y = ny; p.face = dir;
     this.emit('trail', { x: nx, y: ny });
-    // düşman tam o hücredeyse ölüm
+    this.pickCoinAt(nx, ny);
     if (this.enemyAtCell(nx, ny)) { this.die(); return true; }
     return true;
   }
 
   enemyAtCell(x, y) {
-    const b = this.boss;
-    if (b.alive && Math.hypot(b.x - (x + 0.5), b.y - (y + 0.5)) < b.r + 0.4) return true;
+    for (const b of this.bosses) if (b.alive && Math.hypot(b.x - (x + 0.5), b.y - (y + 0.5)) < b.r + 0.4) return true;
     for (const s of this.smalls) if (s.alive && Math.abs(s.x - (x + 0.5)) < 1 && Math.abs(s.y - (y + 0.5)) < 1) return true;
     return false;
   }
@@ -216,14 +219,13 @@ export class Game {
   closeTrail() {
     const p = this.player, g = this.grid;
     const trail = p.trail;
-    const seeds = this.boss.alive ? [{ x: this.boss.x, y: this.boss.y }] : [];
-    const before = g.claimedInterior;
+    const seeds = this.bosses.filter(b => b.alive).map(b => ({ x: b.x, y: b.y }));
     const res = g.closeTrail(trail, seeds);
     p.drawing = false; p.trail = []; p.idle = 0;
     this.fuse.active = false;
     this.gridVersion++;
+    this.emit('safe', { safe: true });
 
-    // içeride kalan küçük düşmanlar ölür
     let chain = 0;
     for (const s of this.smalls) {
       if (!s.alive) continue;
@@ -236,8 +238,10 @@ export class Game {
         this.sfx.enemyDie();
       }
     }
-    // içeride kalan mermiler
     this.shots = this.shots.filter(sh => g.isEmpty(Math.floor(sh.x), Math.floor(sh.y)));
+    // kuşatılan coin'ler toplanır
+    for (const c of this.coins) if (!g.isEmpty(Math.floor(c.x), Math.floor(c.y))) this.collectCoin(c);
+    this.coins = this.coins.filter(c => !c.taken);
 
     const frac = res.claimedCells / Math.max(1, g.interiorTotal);
     let pts = res.claimedCells * SCORE.PER_CELL;
@@ -247,32 +251,31 @@ export class Game {
     this.sfx.claim(big);
     this.emit('percent');
 
-    // kutu yakalandı → güçlendirme
     for (const b of res.newlyCaptured) this.grantPower(b);
     if (g.blocks.length && g.blocks.every(b => b.captured) && !this.allBlocksBonusGiven) {
       this.allBlocksBonusGiven = true;
       this.addScore(SCORE.ALL_BLOCKS);
-      this.superWeapon = true; this.powers.L = 20;
+      this.superWeapon = true; this.powers.L = 20 + this.fx.laserBonus;
       this.floatText(GRID_W / 2, GRID_H / 2, 'SÜPER SİLAH!', '#ff5d8f', 2.4);
       this.sfx.power(); this.emit('powers');
     }
-
-    if (g.percent() >= CLEAR_PERCENT) this.levelClear(false);
+    if (g.percent() >= CLEAR_PERCENT) this.parkurClear(false);
   }
 
   grantPower(block) {
     const keys = Object.keys(POWERUPS);
-    let total = keys.reduce((a, k) => a + POWERUPS[k].weight, 0);
+    const total = keys.reduce((a, k) => a + POWERUPS[k].weight, 0);
     let r = this.rng() * total, pick = 'B';
     for (const k of keys) { r -= POWERUPS[k].weight; if (r <= 0) { pick = k; break; } }
     block.letter = pick;
     const cx = block.x + block.size / 2, cy = block.y + block.size / 2;
     const pu = POWERUPS[pick];
     switch (pick) {
-      case 'S': case 'T': case 'L': this.powers[pick] = Math.max(this.powers[pick], pu.duration); break;
-      case 'P': this.shield = true; break;
+      case 'S': case 'T': this.powers[pick] = Math.max(this.powers[pick], pu.duration); break;
+      case 'L': this.powers.L = Math.max(this.powers.L, pu.duration + this.fx.laserBonus); break;
+      case 'P': this.shields = Math.min(3, this.shields + 1); break;
       case 'E': this.lives++; this.emit('lives'); break;
-      case 'B': this.addScore(SCORE.BONUS_BOX); break;
+      case 'B': this.addScore(SCORE.BONUS_BOX); this.earnCoins(5 + Math.floor(this.rng() * 6), cx, cy); break;
     }
     this.floatText(cx, cy - 3, pu.name, pu.color, 1.8);
     this.burst(cx, cy, pu.color, 20);
@@ -280,21 +283,50 @@ export class Game {
     this.emit('powers');
   }
 
+  // ---------------- HEPCOIN ----------------
+  updateCoins(dt) {
+    this.coinT -= dt;
+    if (this.coinT <= 0) {
+      this.coinT = this.coinDelay();
+      if (this.coins.length < COIN.MAX_ON_FIELD) {
+        const c = this.grid.randomEmptyCell(this.rng, 4);
+        const far = this.bosses.every(b => Math.hypot(c.x - b.x, c.y - b.y) > b.r + 3);
+        if (far) {
+          const v = COIN.VALUES[Math.floor(this.rng() * COIN.VALUES.length)];
+          this.coins.push({ x: c.x, y: c.y, value: Math.max(1, Math.round(v * this.fx.coinValueMult)), life: COIN.LIFETIME, spin: 0, taken: false });
+          this.emit('coinspawn');
+        }
+      }
+    }
+    for (const c of this.coins) { c.life -= dt; c.spin += dt * 4; }
+    this.coins = this.coins.filter(c => c.life > 0 && !c.taken);
+  }
+  pickCoinAt(x, y) { for (const c of this.coins) if (!c.taken && c.x === x && c.y === y) this.collectCoin(c); }
+  collectCoin(c) { if (c.taken) return; c.taken = true; this.earnCoins(c.value, c.x + 0.5, c.y + 0.5); }
+  earnCoins(n, x, y) {
+    this.coinsRun += n;
+    addCoins(this.profile, n);
+    this.account.save();
+    this.floatText(x, y - 2, `+${n} HEPCOIN`, '#ffcc33', 1.2);
+    this.burst(x, y, '#ffcc33', 10);
+    this.sfx.coin();
+    this.emit('coins');
+  }
+
   // ---------------- boss ----------------
   bossCollides(x, y, r) {
-    const g = this.grid;
     const n = 12;
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2;
       const cx = Math.floor(x + Math.cos(a) * r), cy = Math.floor(y + Math.sin(a) * r);
-      const v = g.get(cx, cy);
+      const v = this.grid.get(cx, cy);
       if (v !== CELL.EMPTY) return { cx, cy, v };
     }
     return null;
   }
 
-  updateBoss(dt) {
-    const b = this.boss; if (!b.alive) return;
+  updateBoss(b, dt) {
+    if (!b.alive) return;
     b.angle += dt * 1.5;
     if (b.hitFlash > 0) b.hitFlash -= dt;
     b.turnT -= dt;
@@ -305,39 +337,30 @@ export class Game {
       b.vx = Math.cos(ang) * sp; b.vy = Math.sin(ang) * sp;
       if (this.rng() < 0.25) { b.dashT = 0.6; b.vx *= 2; b.vy *= 2; }
     }
-    if (b.dashT > 0) { b.dashT -= dt; if (b.dashT <= 0) { const k = 0.5; b.vx *= k; b.vy *= k; } }
-
-    // eksen eksen hareket + sekme
+    if (b.dashT > 0) { b.dashT -= dt; if (b.dashT <= 0) { b.vx *= 0.5; b.vy *= 0.5; } }
     let nx = b.x + b.vx * dt;
     let hit = this.bossCollides(nx, b.y, b.r);
-    if (hit) { b.vx = -b.vx; nx = b.x; this.onBossTouch(hit); }
+    if (hit) { b.vx = -b.vx; nx = b.x; if (hit.v === CELL.TRAIL) this.igniteFuse(hit.cx, hit.cy); }
     b.x = nx;
     let ny = b.y + b.vy * dt;
     hit = this.bossCollides(b.x, ny, b.r);
-    if (hit) { b.vy = -b.vy; ny = b.y; this.onBossTouch(hit); }
+    if (hit) { b.vy = -b.vy; ny = b.y; if (hit.v === CELL.TRAIL) this.igniteFuse(hit.cx, hit.cy); }
     b.y = ny;
-    // sıkışma güvenliği
     b.x = Math.max(b.r + 1, Math.min(GRID_W - 1 - b.r, b.x));
     b.y = Math.max(b.r + 1, Math.min(GRID_H - 1 - b.r, b.y));
 
-    // ateş
     if (this.def.shoot > 0) {
       b.shootT -= dt;
       if (b.shootT <= 0) {
         b.shootT = (1.2 + this.rng() * 2.5) / this.def.shoot;
         const p = this.player;
         const ang = Math.atan2((p.y + 0.5) - b.y, (p.x + 0.5) - b.x) + (this.rng() - 0.5) * 0.3;
-        const sp = 22 + this.levelNo * 1.2;
+        const sp = 22 + this.L * 0.8;
         this.shots.push({ x: b.x + Math.cos(ang) * (b.r + 0.5), y: b.y + Math.sin(ang) * (b.r + 0.5), vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: 6 });
       }
     }
-    // oyuncuya temas (çizim halindeyse)
     const p = this.player;
     if (p.drawing && Math.hypot(b.x - (p.x + 0.5), b.y - (p.y + 0.5)) < b.r + 0.6) this.die();
-  }
-
-  onBossTouch(hit) {
-    if (hit.v === CELL.TRAIL) this.igniteFuse(hit.cx, hit.cy);
   }
 
   // ---------------- küçük düşmanlar ----------------
@@ -354,7 +377,6 @@ export class Game {
       v = g.get(Math.floor(s.x), Math.floor(ny));
       if (v !== CELL.EMPTY) { if (v === CELL.TRAIL) this.igniteFuse(Math.floor(s.x), Math.floor(ny)); s.vy = -s.vy; ny = s.y; }
       s.y = ny;
-      // hafif rastgele sapma
       if (this.rng() < dt * 0.4) { const a = Math.atan2(s.vy, s.vx) + (this.rng() - 0.5) * 1.2; s.vx = Math.cos(a) * s.speed; s.vy = Math.sin(a) * s.speed; }
       if (p.drawing && Math.abs(s.x - (p.x + 0.5)) < 1 && Math.abs(s.y - (p.y + 0.5)) < 1) { this.die(); return; }
     }
@@ -379,7 +401,6 @@ export class Game {
     const p = this.player;
     if (!p.drawing) return;
     if (cx === p.x && cy === p.y) { this.die(); return; }
-    // o hücrenin hattaki indeksi
     let idx = -1;
     for (let i = p.trail.length - 1; i >= 0; i--) if (p.trail[i][0] === cx && p.trail[i][1] === cy) { idx = i; break; }
     if (idx < 0) return;
@@ -389,7 +410,6 @@ export class Game {
   updateFuse(dt) {
     const p = this.player, f = this.fuse;
     if (!p.drawing) { f.active = false; return; }
-    // Qix klasiği: çizerken durursan hattın başından fitil yanar
     if (!f.active && p.idle > 0.6 && p.trail.length > 1) { f.active = true; f.idx = 0; this.sfx.fuse(); }
     if (!f.active) return;
     f.idx += this.playerSpeed() * FUSE_SPEED_RATIO * dt;
@@ -398,20 +418,25 @@ export class Game {
   }
 
   // ---------------- lazer ----------------
+  nearestBoss(x, y) {
+    let best = null, bd = Infinity;
+    for (const b of this.bosses) if (b.alive) { const d = Math.hypot(b.x - x, b.y - y); if (d < bd) { bd = d; best = b; } }
+    return best;
+  }
   fireLaser() {
-    const p = this.player, b = this.boss;
+    const p = this.player;
     this.laserCooldown = this.superWeapon ? 0.12 : 0.2;
-    // mobil için otomatik nişan: boss'a doğru
+    const b = this.nearestBoss(p.x + 0.5, p.y + 0.5);
     let ang;
-    if (b.alive) ang = Math.atan2(b.y - (p.y + 0.5), b.x - (p.x + 0.5));
+    if (b) ang = Math.atan2(b.y - (p.y + 0.5), b.x - (p.x + 0.5));
     else { const [dx, dy] = DIR_VEC[p.face] || [0, -1]; ang = Math.atan2(dy, dx); }
     const sp = 110;
-    this.beams.push({ x: p.x + 0.5, y: p.y + 0.5, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: 1.5, dmg: this.superWeapon ? 2 : 1, born: true });
+    this.beams.push({ x: p.x + 0.5, y: p.y + 0.5, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: 1.5, dmg: (this.superWeapon ? 2 : 1) * this.fx.laserDmg, born: true });
     this.sfx.laser();
   }
 
   updateBeams(dt) {
-    const g = this.grid, b = this.boss;
+    const g = this.grid;
     for (const be of this.beams) {
       const steps = 3;
       for (let k = 0; k < steps && be.life > 0; k++) {
@@ -423,9 +448,14 @@ export class Game {
         for (const s of this.smalls) if (s.alive && Math.hypot(s.x - be.x, s.y - be.y) < 1.6) {
           s.alive = false; be.life = 0; this.addScore(SCORE.SMALL_ENEMY); this.floatText(s.x, s.y, `${SCORE.SMALL_ENEMY}`, '#ffd23f'); this.burst(s.x, s.y, '#ff8a5d', 14); this.sfx.enemyDie();
         }
-        if (b.alive && Math.hypot(b.x - be.x, b.y - be.y) < b.r + 0.5) {
+        for (const b of this.bosses) if (b.alive && Math.hypot(b.x - be.x, b.y - be.y) < b.r + 0.5) {
           be.life = 0; b.hp -= be.dmg; b.hitFlash = 0.12; this.addScore(SCORE.BOSS_HIT); this.sfx.bossHit(); this.burst(be.x, be.y, '#ffffff', 5);
-          if (b.hp <= 0) { b.alive = false; this.burst(b.x, b.y, '#ffd23f', 60); this.shake = 0.8; this.levelClear(true); return; }
+          if (b.hp <= 0) {
+            b.alive = false; this.burst(b.x, b.y, '#ffd23f', 60); this.shake = 0.8;
+            this.earnCoins(10 + this.L, b.x, b.y);
+            if (!this.bosses.some(o => o.alive)) { this.parkurClear(true); return; }
+            this.floatText(b.x, b.y - 4, 'BOSS YOK EDİLDİ!', '#ffd23f', 1.8);
+          }
         }
       }
       be.life -= dt;
@@ -433,28 +463,30 @@ export class Game {
     this.beams = this.beams.filter(b => b.life > 0);
   }
 
-  // ---------------- ölüm / bölüm sonu ----------------
+  // ---------------- ölüm / parkur sonu ----------------
   die() {
     const p = this.player;
     if (this.state !== STATE.PLAY || p.invuln > 0) return;
-    if (this.shield) {
-      this.shield = false; p.invuln = 1.5; this.emit('powers');
+    if (this.shields > 0) {
+      this.shields--; p.invuln = 1.5; this.emit('powers');
       this.floatText(p.x, p.y - 3, 'KALKAN!', '#9bff8a', 1.2); this.burst(p.x + 0.5, p.y + 0.5, '#9bff8a', 24); this.sfx.bossHit();
       return;
     }
     this.burst(p.x + 0.5, p.y + 0.5, '#5de4ff', 40);
     this.shake = 0.6;
     this.sfx.die();
-    if (navigator.vibrate) { try { navigator.vibrate([80, 40, 120]); } catch (e) { /* yok say */ } }
+    if (this.profile.settings.vibrate && navigator.vibrate) { try { navigator.vibrate([80, 40, 120]); } catch (e) { /* yok say */ } }
     this.setState(STATE.DYING);
   }
 
   afterDeath() {
     const p = this.player, g = this.grid;
     if (p.drawing) { g.clearTrail(p.trail); p.trail = []; p.drawing = false; }
+    this.emit('safe', { safe: true });
     this.gridVersion++;
     this.fuse.active = false;
-    this.lives--;
+    this.lives--; this.deaths++;
+    this.profile.stats.deaths++;
     this.emit('lives');
     if (this.lives < 0) { this.gameOver(); return; }
     if (p.start) { p.x = p.start.x; p.y = p.start.y; }
@@ -463,32 +495,40 @@ export class Game {
     this.setState(STATE.PLAY);
   }
 
-  levelClear(special) {
+  parkurClear(special) {
     const g = this.grid;
-    const pct = g.percent();
+    const pct = special ? 100 : g.percent();
     const over = Math.max(0, Math.floor(pct) - CLEAR_PERCENT);
     const bonus = {
       special: special ? SCORE.SPECIAL_CLEAR : 0,
       over: over * SCORE.PER_PERCENT_OVER,
       time: Math.floor(this.timeLeft) * SCORE.PER_SECOND_LEFT,
-      percent: special ? 100 : pct,
+      percent: pct,
     };
     this.addScore(bonus.special + bonus.over + bonus.time);
-    // görsel: tüm alan ortaya çıksın
     if (special) {
       for (let i = 0; i < g.cells.length; i++) if (g.cells[i] === CELL.EMPTY || g.cells[i] === CELL.TRAIL) g.cells[i] = CELL.CLAIMED;
       g.claimedInterior = g.interiorTotal;
     }
     this.player.drawing = false; this.player.trail = [];
     this.gridVersion++;
-    this.lastBonus = bonus;
+    // parkur bitirme coin ödülü
+    const coinReward = 3 + Math.floor(this.L / 2) + (special ? 5 : 0) + (this.deaths === 0 ? 2 : 0);
+    this.coinsRun += coinReward;
+    addCoins(this.profile, coinReward);
+    // onur ve profil
+    const hr = recordParkur(this.profile, this.L, this.p, { percent: pct, special, deaths: this.deaths, score: this.score });
+    if (this.score > this.profile.hiScore) this.profile.hiScore = this.score;
+    this.account.save(true);
+    this.lastResult = { bonus, honor: hr.honor, improved: hr.improved, prevHonor: hr.prevHonor, coins: this.coinsRun, coinReward, special, deaths: this.deaths, L: this.L, p: this.p, n: parkurCount(this.L) };
     this.sfx.levelClear();
     this.setState(STATE.CLEAR);
-    this.emit('clear', { bonus });
+    this.emit('clear', { result: this.lastResult });
   }
 
   gameOver() {
-    if (this.score > this.hiScore) { this.hiScore = this.score; this.storage.setHiScore(this.score); }
+    if (this.score > this.profile.hiScore) this.profile.hiScore = this.score;
+    this.account.save(true);
     this.sfx.gameOver();
     this.setState(STATE.GAMEOVER);
   }

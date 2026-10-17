@@ -122,7 +122,8 @@ export class Renderer {
     // 6) düşmanlar
     const frozen = game.powers.T > 0;
     for (const s of game.smalls) if (s.alive) this.drawSmall(ctx, s, S, frozen);
-    if (game.boss.alive) this.drawBoss(ctx, game.boss, S, frozen, game.def);
+    for (const b of game.bosses) if (b.alive) this.drawBoss(ctx, b, S, frozen, game.def);
+    for (const c of game.coins) this.drawCoin(ctx, c, S);
     for (const sh of game.shots) {
       ctx.fillStyle = '#ff6b6b'; ctx.beginPath(); ctx.arc(sh.x * S, sh.y * S, S * 0.7, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(sh.x * S, sh.y * S, S * 0.3, 0, Math.PI * 2); ctx.fill();
@@ -169,19 +170,51 @@ export class Renderer {
   drawPlayer(ctx, game, S) {
     const p = game.player;
     const x = (p.x + 0.5) * S, y = (p.y + 0.5) * S;
+    // korumalı bölge halkası: kenardayken görünür, çizime geçince kaybolur
+    if (!p.drawing) {
+      const pulse = 0.55 + 0.25 * Math.sin(this.t * 5);
+      const rr = S * 3.2;
+      const grd = ctx.createRadialGradient(x, y, rr * 0.5, x, y, rr);
+      grd.addColorStop(0, 'rgba(93,228,255,0)'); grd.addColorStop(1, `rgba(93,228,255,${0.22 * pulse})`);
+      ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(x, y, rr, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = `rgba(93,228,255,${pulse})`; ctx.lineWidth = Math.max(1, S * 0.35);
+      ctx.setLineDash([S * 1.2, S * 0.8]); ctx.lineDashOffset = -this.t * S * 6;
+      ctx.beginPath(); ctx.arc(x, y, rr, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+    }
+    // P kalkanı: yeşil altıgen(ler)
+    for (let i = 0; i < game.shields; i++) {
+      ctx.strokeStyle = `rgba(155,255,138,${0.6 + 0.3 * Math.sin(this.t * 8 + i)})`; ctx.lineWidth = S * 0.35;
+      const r = S * (2.0 + i * 0.5);
+      ctx.beginPath(); for (let k = 0; k < 6; k++) { const a = this.t * 2 + k * Math.PI / 3; ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } ctx.closePath(); ctx.stroke();
+    }
     const blink = p.invuln > 0 && Math.floor(this.t * 12) % 2 === 0;
     if (blink) return;
     const [dx, dy] = DIR_VEC[p.face] || [0, -1];
     const a = Math.atan2(dy, dx);
     ctx.save(); ctx.translate(x, y); ctx.rotate(a + Math.PI / 2);
-    // parlama
     ctx.shadowColor = p.drawing ? '#ff5d8f' : '#5de4ff'; ctx.shadowBlur = S * 2;
     ctx.fillStyle = p.drawing ? '#ffd1df' : '#d8f7ff';
     ctx.beginPath(); ctx.moveTo(0, -S * 1.6); ctx.lineTo(S * 1.2, S * 1.2); ctx.lineTo(0, S * 0.6); ctx.lineTo(-S * 1.2, S * 1.2); ctx.closePath(); ctx.fill();
     ctx.shadowBlur = 0;
     ctx.fillStyle = p.drawing ? '#ff5d8f' : '#5de4ff'; ctx.beginPath(); ctx.arc(0, 0, S * 0.45, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
-    if (game.shield) { ctx.strokeStyle = `rgba(155,255,138,${0.5 + 0.3 * Math.sin(this.t * 8)})`; ctx.lineWidth = S * 0.4; ctx.beginPath(); ctx.arc(x, y, S * 2.4, 0, Math.PI * 2); ctx.stroke(); }
+  }
+
+  drawCoin(ctx, c, S) {
+    const x = (c.x + 0.5) * S, y = (c.y + 0.5) * S;
+    const sx = Math.abs(Math.cos(c.spin));              // dönüş efekti
+    const fade = c.life < 3 ? (Math.floor(c.life * 6) % 2 ? 0.3 : 1) : 1;
+    ctx.save(); ctx.translate(x, y); ctx.scale(Math.max(0.15, sx), 1); ctx.globalAlpha = fade;
+    ctx.shadowColor = '#ffcc33'; ctx.shadowBlur = S * 2;
+    const g = ctx.createRadialGradient(-S * 0.4, -S * 0.4, S * 0.2, 0, 0, S * 1.5);
+    g.addColorStop(0, '#fff3b0'); g.addColorStop(0.5, '#ffcc33'); g.addColorStop(1, '#b8860b');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, S * 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#7a5a00'; ctx.lineWidth = S * 0.2; ctx.beginPath(); ctx.arc(0, 0, S * 1.05, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#7a5a00'; ctx.font = `bold ${Math.round(S * 1.6)}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('H', 0, S * 0.05);
+    ctx.restore();
+    if (c.value > 1) { ctx.fillStyle = '#ffe680'; ctx.font = `bold ${Math.round(S * 1.6)}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.fillText(`x${c.value}`, x, y - S * 2.4); }
   }
 
   drawSmall(ctx, s, S, frozen) {

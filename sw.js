@@ -1,7 +1,7 @@
 // VOLFAI service worker - çevrimdışı oynanabilsin
-const CACHE = 'volfai-v2';
+const CACHE = 'volfai-v3';
 const ASSETS = ['./index.html', './css/style.css', './manifest.webmanifest',
-  './js/main.js', './js/game.js', './js/grid.js', './js/render.js', './js/input.js', './js/audio.js', './js/levels.js', './js/config.js', './js/storage.js',
+  './js/main.js', './js/game.js', './js/grid.js', './js/render.js', './js/input.js', './js/audio.js', './js/levels.js', './js/config.js', './js/profile.js', './js/account.js',
   './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

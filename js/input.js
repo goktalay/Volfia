@@ -48,6 +48,8 @@ export class Input {
   fireAny() { if (this.onAny) { const f = this.onAny; this.onAny = null; f(); } }
 
   onTouchStart(e) {
+    // düğmelere dokunuş joystick başlatmasın
+    if (e.target.closest && e.target.closest('button, a, input, label, select')) return;
     e.preventDefault();
     this.fireAny();
     if (this.touchId !== null && this.touchId !== 'mouse') return;
@@ -58,12 +60,10 @@ export class Input {
     this.visible = true;
   }
   onTouchMove(e) {
-    e.preventDefault();
-    for (const t of e.changedTouches) if (t.identifier === this.touchId) this.updateFrom(t.clientX, t.clientY);
+    for (const t of e.changedTouches) if (t.identifier === this.touchId) { e.preventDefault(); this.updateFrom(t.clientX, t.clientY); }
   }
   onTouchEnd(e) {
-    e.preventDefault();
-    for (const t of e.changedTouches) if (t.identifier === this.touchId) this.release();
+    for (const t of e.changedTouches) if (t.identifier === this.touchId) { e.preventDefault(); this.release(); }
   }
   release() {
     this.touchId = null; this.anchor = null; this.pos = null; this.visible = false;
