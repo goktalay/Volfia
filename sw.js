@@ -1,6 +1,6 @@
 // VOLFAI service worker - çevrimdışı oynanabilsin
-const CACHE = 'volfai-v1';
-const ASSETS = ['./', './index.html', './css/style.css', './manifest.webmanifest',
+const CACHE = 'volfai-v2';
+const ASSETS = ['./index.html', './css/style.css', './manifest.webmanifest',
   './js/main.js', './js/game.js', './js/grid.js', './js/render.js', './js/input.js', './js/audio.js', './js/levels.js', './js/config.js', './js/storage.js',
   './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())); });

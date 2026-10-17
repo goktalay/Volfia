@@ -2,7 +2,7 @@
   "name": "VOLFAI",
   "short_name": "VOLFAI",
   "description": "Volfied'in dokunmatik yeniden yapımı: alanı ele geçir, uzaylıları kuşat.",
-  "start_url": "./",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "fullscreen",
   "orientation": "portrait",
