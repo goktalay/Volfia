@@ -200,3 +200,12 @@ details.howto { max-width: 360px; width: 100%; }
 .seg button { flex: 1; padding: 9px 4px; border-radius: 10px; border: 1px solid #2a3a60; background: #04060d; color: var(--text); font-size: 12px; font-weight: 700; }
 .seg button.on { background: linear-gradient(90deg, var(--cyan), #3aa8ff); color: #04060d; border-color: transparent; }
 .seg button small { display: block; font-size: 9px; font-weight: 400; opacity: 0.8; }
+
+.diff-bar { width: calc(100% - 28px); max-width: 380px; margin-bottom: 6px; }
+.diff-seg button { padding: 8px 4px; font-size: 12px; letter-spacing: 1px; }
+.diff-seg button.on.acemi { background: linear-gradient(90deg, #9bff8a, #3fd36a); }
+.diff-seg button.on.uzman { background: linear-gradient(90deg, #ffd23f, #ff9f1c); }
+.diff-seg button.on.kahraman { background: linear-gradient(90deg, #ff5d8f, #c21f55); color: #fff; }
+.diff-desc { font-size: 11px; color: var(--dim); text-align: center; margin-top: 5px; min-height: 14px; }
+.diff-line { font-size: 12px; letter-spacing: 4px; font-weight: 800; margin-bottom: 8px; }
+.lvl.diff-uzman { color: #ffd23f; } .lvl.diff-kahraman { color: #ff5d8f; }

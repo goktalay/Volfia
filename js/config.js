@@ -90,6 +90,13 @@ export const MISSILE = {
   REGEN_BASE: 25,       // sn; saptırıcı dolum süresi (seviye 3'te 14)
 };
 
+// Zorluk seviyeleri: çarpanlar parkur tanımına uygulanır; ödül çarpanı onur ve HEPCOIN'i artırır
+export const DIFFICULTY = {
+  acemi:    { name: 'ACEMİ',    desc: 'Öğrenmek için. Füzeler 4. bölümden.',                 bossSpeed: 1.15, smallSpeed: 1.15, smalls: 0, shoot: 1.2, shootMin: 0,    time: 1.0,  bossHp: 1.0, missileFrom: 4, fuse: 1.0,  lives: 0,  reward: 1.0, color: '#9bff8a' },
+  uzman:    { name: 'UZMAN',    desc: 'Daha hızlı yaratıklar, daha çok düşman, %15 az süre. Ödül ×1.5.', bossSpeed: 1.45, smallSpeed: 1.4, smalls: 2, shoot: 1.8, shootMin: 0.15, time: 0.85, bossHp: 1.3, missileFrom: 2, fuse: 1.15, lives: 0,  reward: 1.5, color: '#ffd23f' },
+  kahraman: { name: 'KAHRAMAN', desc: 'Acımasız. Bir can eksik, füzeler ilk bölümden. Ödül ×2.',  bossSpeed: 1.8,  smallSpeed: 1.7, smalls: 4, shoot: 2.6, shootMin: 0.35, time: 0.7,  bossHp: 1.6, missileFrom: 1, fuse: 1.3,  lives: -1, reward: 2.0, color: '#ff5d8f' },
+};
+
 // Görünüm: oyun alanı çözünürlüğü (hücre sayısı) ve nesne boyutu çarpanı (Ayarlar)
 export const FIELD_SIZES = {
   buyuk:  { name: 'BÜYÜK',  desc: 'İri hücreler, büyük gemi (60×90)',     w: 60,  h: 90 },
@@ -110,7 +117,7 @@ const onMastertool = typeof location !== 'undefined' && /(^|\.)mastertool\.downl
 export const MASTERTOOL = {
   API_BASE: onMastertool ? location.origin : '',   // ör. 'https://mastertool.download'
   APP_CODE: 'vf',                                   // VOLFAI uygulama kodu → /api/vf/...
-  APP_VERSION: '0.4.0',
+  APP_VERSION: '0.5.0',
   REGISTER_URL: 'https://mastertool.download/kayit?app=vf',
   LOGIN_URL: 'https://mastertool.download/giris?app=vf',
 };

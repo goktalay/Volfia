@@ -41,7 +41,7 @@ export class Game {
 
   // ---------------- parkur kurulumu ----------------
   startParkur(L, p) {
-    const def = parkurDef(L, p);
+    const def = parkurDef(L, p, this.profile.settings.difficulty || 'acemi');
     const fx = upgradeEffects(this.profile);
     this.def = def; this.fx = fx;
     // oyun alanı çözünürlüğü (Ayarlar)
@@ -50,7 +50,7 @@ export class Game {
     const GRID_W = this.grid.w, GRID_H = this.grid.h;
     this.L = L; this.p = p;
     this.score = 0;
-    this.lives = LIVES_START + fx.extraLives;
+    this.lives = Math.max(1, LIVES_START + fx.extraLives + (def.diff.lives || 0));
     this.deaths = 0;
     this.coinsRun = 0;
     this.grid.reset();
@@ -341,6 +341,7 @@ export class Game {
   pickCoinAt(x, y) { for (const c of this.coins) if (!c.taken && c.x === x && c.y === y) this.collectCoin(c); }
   collectCoin(c) { if (c.taken) return; c.taken = true; this.earnCoins(c.value, c.x + 0.5, c.y + 0.5); }
   earnCoins(n, x, y) {
+    n = Math.max(1, Math.round(n * (this.def?.reward || 1)));
     this.coinsRun += n;
     addCoins(this.profile, n);
     this.account.save();
@@ -432,7 +433,7 @@ export class Game {
         b.shootT = (1.2 + this.rng() * 2.5) / this.def.shoot;
         const ang = Math.atan2((p.y + 0.5) - b.y, (p.x + 0.5) - b.x) + (this.rng() - 0.5) * 0.3;
         const sp = 22 + this.L * 0.8;
-        if (this.L >= MISSILE.FROM_LEVEL && p.drawing && this.rng() < Math.min(0.75, 0.25 + this.L * 0.02)) this.fireMissile(b, ang);
+        if (this.L >= this.def.missileFrom && p.drawing && this.rng() < Math.min(0.75, 0.25 + this.L * 0.02)) this.fireMissile(b, ang);
         else this.shots.push({ x: b.x + Math.cos(ang) * (b.r + 0.5), y: b.y + Math.sin(ang) * (b.r + 0.5), vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: 6 });
       }
     }
@@ -460,7 +461,7 @@ export class Game {
 
   // ---------------- güdümlü füzeler & saptırıcılar ----------------
   fireMissile(b, ang) {
-    const t = Math.min(1, (this.L - MISSILE.FROM_LEVEL) / 20);
+    const t = Math.min(1, Math.max(0, this.L - this.def.missileFrom) / 20);
     const sp = MISSILE.SPEED_MIN + (MISSILE.SPEED_MAX - MISSILE.SPEED_MIN) * t;
     // oyuncunun arkasından gelsin: hedefin ters yönünden değil, boss'tan çıkar ama ilk yönü oyuncunun gidiş yönünün tersi
     const [fdx, fdy] = DIR_VEC[this.player.face] || [0, -1];
@@ -530,7 +531,7 @@ export class Game {
     if (!p.drawing) { f.active = false; return; }
     if (!f.active && p.idle > 0.6 && p.trail.length > 1) { f.active = true; f.idx = 0; this.sfx.fuse(); }
     if (!f.active) return;
-    f.idx += this.playerSpeed() * FUSE_SPEED_RATIO * dt;
+    f.idx += this.playerSpeed() * FUSE_SPEED_RATIO * this.def.fuseMult * dt;
     if (Math.floor(f.idx) % 4 === 0 && this.rng() < 0.5) { const c = p.trail[Math.min(p.trail.length - 1, Math.floor(f.idx))]; this.spark(c[0] + 0.5, c[1] + 0.5); }
     if (f.idx >= p.trail.length - 1) this.die();
   }
@@ -649,10 +650,10 @@ export class Game {
     this.coinsRun += coinReward;
     addCoins(this.profile, coinReward);
     // onur ve profil
-    const hr = recordParkur(this.profile, this.L, this.p, { percent: pct, special, deaths: this.deaths, score: this.score });
+    const hr = recordParkur(this.profile, this.L, this.p, { percent: pct, special, deaths: this.deaths, score: this.score, reward: this.def.reward, difficulty: this.def.difficulty });
     if (this.score > this.profile.hiScore) this.profile.hiScore = this.score;
     this.account.save(true);
-    this.lastResult = { bonus, honor: hr.honor, improved: hr.improved, prevHonor: hr.prevHonor, coins: this.coinsRun, coinReward, special, deaths: this.deaths, L: this.L, p: this.p, n: parkurCount(this.L) };
+    this.lastResult = { bonus, honor: hr.honor, improved: hr.improved, prevHonor: hr.prevHonor, coins: this.coinsRun, coinReward, special, deaths: this.deaths, L: this.L, p: this.p, n: parkurCount(this.L), difficulty: this.def.difficulty, reward: this.def.reward };
     this.sfx.levelClear();
     this.setState(STATE.CLEAR);
     this.emit('clear', { result: this.lastResult });

@@ -24,6 +24,19 @@ test('onur puanı hesabı', () => {
   assert.equal(computeHonor({ percent: 80, special: false, deaths: 1 }), 10);
   assert.equal(computeHonor({ percent: 95, special: false, deaths: 0 }), 30);
   assert.equal(computeHonor({ percent: 100, special: true, deaths: 0 }), 45);
+  assert.equal(computeHonor({ percent: 100, special: true, deaths: 0, reward: 2 }), 90);
+  assert.equal(computeHonor({ percent: 80, special: false, deaths: 1, reward: 1.5 }), 15);
+});
+
+test('zorluk seviyeleri parkur parametrelerini sıralı sertleştirir', () => {
+  const a = parkurDef(5, 2, 'acemi'), u = parkurDef(5, 2, 'uzman'), k = parkurDef(5, 2, 'kahraman');
+  assert.ok(a.bossSpeed < u.bossSpeed && u.bossSpeed < k.bossSpeed);
+  assert.ok(a.smalls < u.smalls && u.smalls < k.smalls);
+  assert.ok(a.time > u.time && u.time > k.time);
+  assert.ok(a.shoot <= u.shoot && u.shoot <= k.shoot);
+  assert.equal(a.reward, 1); assert.equal(u.reward, 1.5); assert.equal(k.reward, 2);
+  assert.equal(parkurDef(1, 1, 'kahraman').missileFrom, 1);
+  assert.equal(parkurDef(1, 1).difficulty, 'acemi');
 });
 
 test('bölüm kilidi onur eşiğiyle açılır, parkurlar sırayla açılır', () => {

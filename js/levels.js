@@ -1,6 +1,6 @@
 // VOLFAI - 30 bölüm × 5-10 parkur kampanyası ve prosedürel "gezegen" sanatı
 // Volfied'de her bölümün kendine özgü arka planı vardır; alan kapattıkça ortaya çıkar.
-import { LEVEL_COUNT, PARKUR_MIN, PARKUR_MAX } from './config.js';
+import { LEVEL_COUNT, PARKUR_MIN, PARKUR_MAX, DIFFICULTY } from './config.js';
 
 export function mulberry32(seed) {
   let a = seed >>> 0;
@@ -102,7 +102,8 @@ export function totalParkurs() { let n = 0; for (let L = 1; L <= LEVEL_COUNT; L+
  * @param {number} L bölüm (1..30)
  * @param {number} p parkur (1..parkurCount(L))
  */
-export function parkurDef(L, p) {
+export function parkurDef(L, p, difficulty = 'acemi') {
+  const D = DIFFICULTY[difficulty] || DIFFICULTY.acemi;
   const info = levelInfo(L);
   const n = info.parkurs;
   // küresel zorluk 0..1: bölüm ağırlıklı, parkur içi ince artış
@@ -115,15 +116,18 @@ export function parkurDef(L, p) {
     L, p, n, index: L * 100 + p, isBossParkur,
     name: info.name, art: info.art,
     hue: (info.hue + (p - 1) * 9) % 360,
-    creature,
+    creature, difficulty, diff: D,
     boss: creature.shape,
     bossR: (lerp(4.5, 8) + (isBossParkur ? 1 : 0)) * creature.rMul,
-    bossSpeed: lerp(14, 36) + (isBossParkur ? 3 : 0),
-    bossHp: Math.round(lerp(40, 160) * (isBossParkur ? 1.5 : 1)),
-    smalls: Math.round(lerp(2, 10)) + (isBossParkur ? 1 : 0),
-    smallSpeed: lerp(10, 28),
-    shoot: L <= 2 ? 0 : lerp(0, 0.9),
-    time: Math.round(lerp(150, 90)),
+    bossSpeed: (lerp(14, 36) + (isBossParkur ? 3 : 0)) * D.bossSpeed,
+    bossHp: Math.round(lerp(40, 160) * (isBossParkur ? 1.5 : 1) * D.bossHp),
+    smalls: Math.round(lerp(2, 10)) + (isBossParkur ? 1 : 0) + D.smalls,
+    smallSpeed: lerp(10, 28) * D.smallSpeed,
+    shoot: Math.max(D.shootMin, (L <= 2 ? 0 : lerp(0, 0.9)) * D.shoot),
+    time: Math.round(lerp(150, 90) * D.time),
+    missileFrom: D.missileFrom,
+    fuseMult: D.fuse,
+    reward: D.reward,
     blocks: isBossParkur ? 2 : Math.round(lerp(2, 6)),
     dualBoss: !!creature.dual,  // ikili yaratıklar bölüm boyunca çift gelir
   };

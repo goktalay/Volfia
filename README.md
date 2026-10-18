@@ -27,6 +27,8 @@ ekrana eklenebilir, çevrimdışı oynanır.
 - **Güdümlü füzeler ve saptırıcılar:** 4. bölümden itibaren boss, çizim halindeki gemiyi arkadan
   takip eden füzeler atar. Saptırıcılar menzile giren füzeyi imha eder, zamanla yeniden dolar;
   Saptırıcı yükseltmesiyle sayı ve dolum hızı artar.
+- **Zorluk:** Acemi, Uzman (ödül ×1.5), Kahraman (ödül ×2, bir can eksik, füzeler ilk bölümden).
+  Bölümler ekranından seçilir; yaratık ve düşman hızı, düşman sayısı, ateş sıklığı, süre ve fitil hızı değişir.
 - **Görünüm ayarları:** oyun alanı çözünürlüğü (Büyük 60×90, Normal 80×120, İnce 100×150) ve
   gemi/nesne boyutu çarpanı (×1, ×1.3, ×1.6, ×2). Büyük ekranlı telefonlarda Büyük + ×1.6 önerilir.
 - **Hesap:** misafir (yerel) veya Mastertool hesabı. API ayrıntıları `docs/MASTERTOOL_API.md`.

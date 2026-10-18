@@ -12,7 +12,7 @@ export function emptyProfile() {
     ships: { monotros: true },
     // levels[L] = { parkurs: { [p]: { honor, best, special } } }
     levels: {},
-    settings: { muted: false, vibrate: true, field: 'normal', spriteScale: 1.3 },
+    settings: { muted: false, vibrate: true, field: 'normal', spriteScale: 1.3, difficulty: 'acemi' },
     stats: { parkursCleared: 0, coinsEarned: 0, bossKills: 0, deaths: 0 },
     updatedAt: 0,
   };
@@ -69,17 +69,17 @@ export function levelClearedCount(profile, L) {
 }
 
 /** Parkur sonucu onur puanı hesabı. */
-export function computeHonor({ percent, special, deaths }) {
+export function computeHonor({ percent, special, deaths, reward = 1 }) {
   let h = HONOR.CLEAR;
   h += Math.min(20, Math.max(0, Math.floor(percent) - 80)) * HONOR.PER_PERCENT_OVER;
   if (special) h += HONOR.SPECIAL;
   if (deaths === 0) h += HONOR.NO_DEATH;
-  return h;
+  return Math.round(h * reward);
 }
 
 /** Parkur bitişini profile işle; en iyi sonuç saklanır. Döner: {honor, improved, prevHonor} */
-export function recordParkur(profile, L, p, { percent, special, deaths, score }) {
-  const honor = computeHonor({ percent, special, deaths });
+export function recordParkur(profile, L, p, { percent, special, deaths, score, reward = 1, difficulty = 'acemi' }) {
+  const honor = computeHonor({ percent, special, deaths, reward });
   profile.levels[L] = profile.levels[L] || { parkurs: {} };
   const prev = profile.levels[L].parkurs[p];
   const prevHonor = prev ? prev.honor : 0;
@@ -91,6 +91,7 @@ export function recordParkur(profile, L, p, { percent, special, deaths, score })
     best: Math.max(prev?.best || 0, score || 0),
     special: !!(prev?.special || special),
     percent: Math.max(prev?.percent || 0, Math.floor(percent)),
+    difficulty: improved ? difficulty : (prev?.difficulty || difficulty),
   };
   profile.updatedAt = Date.now();
   return { honor, improved, prevHonor };

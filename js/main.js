@@ -4,7 +4,7 @@ import { Renderer, drawShipShape } from './render.js';
 import { Input } from './input.js';
 import { Sfx } from './audio.js';
 import { Account } from './account.js';
-import { POWERUPS, CLEAR_PERCENT, LEVEL_COUNT, UPGRADES, MASTERTOOL, SHIPS, TIMER, FIELD_SIZES, SPRITE_SCALES } from './config.js';
+import { POWERUPS, CLEAR_PERCENT, LEVEL_COUNT, UPGRADES, MASTERTOOL, SHIPS, TIMER, FIELD_SIZES, SPRITE_SCALES, DIFFICULTY } from './config.js';
 import { levelInfo, parkurCount, totalParkurs, drawLevelArt } from './levels.js';
 import { isLevelUnlocked, isParkurUnlocked, isParkurCleared, parkurResult, levelHonor, levelHonorRequired, totalHonor, highestUnlockedLevel, levelClearedCount, upgradeCost, buyUpgrade, upgradeEffects, currentShip, ownsShip, canBuyShip, buyShip, selectShip } from './profile.js';
 
@@ -64,7 +64,7 @@ function updateHud() {
     if ($('armor').dataset.k !== ak) { $('armor').dataset.k = ak; $('armor').innerHTML = Array.from({ length: am }, (_, i) => `<i class="${i < game.armor ? '' : 'off'}"></i>`).join(''); }
     if ($('defl').dataset.k !== dk) { $('defl').dataset.k = dk; $('defl').innerHTML = Array.from({ length: dm }, (_, i) => `<i class="${i < game.deflectors ? '' : 'off'}"></i>`).join(''); }
   }
-  if (game.def) $('levelname').textContent = `B${game.def.L} · P${game.def.p}/${game.def.n} · ${game.def.name}`;
+  if (game.def) { const ln = $('levelname'); ln.textContent = `${DIFFICULTY[game.def.difficulty].name} · B${game.def.L} · P${game.def.p}/${game.def.n} · ${game.def.name}`; ln.className = `lvl diff-${game.def.difficulty}`; }
   let html = '';
   for (const k of ['S', 'T', 'L']) if (game.powers[k] > 0) {
     const d = POWERUPS[k].duration + (k === 'L' ? game.fx.laserBonus : 0);
@@ -83,7 +83,7 @@ function handleEvents() {
     switch (ev.type) {
       case 'trail': renderer.setTrailPixel(ev.x, ev.y); break;
       case 'parkur':
-        $('intro-no').textContent = ev.def.L; $('intro-p').textContent = ev.def.p; $('intro-n').textContent = ev.def.n; $('intro-name').textContent = ev.def.name; $('intro-creature').textContent = ev.def.creature.name + (ev.def.dualBoss ? ' ×2' : ''); break;
+        $('intro-no').textContent = ev.def.L; $('intro-p').textContent = ev.def.p; $('intro-n').textContent = ev.def.n; $('intro-name').textContent = ev.def.name; $('intro-creature').textContent = ev.def.creature.name + (ev.def.dualBoss ? ' ×2' : ''); const dd = DIFFICULTY[ev.def.difficulty]; $('intro-diff').textContent = `ZORLUK: ${dd.name}${dd.reward > 1 ? ` · ÖDÜL ×${dd.reward}` : ''}`; $('intro-diff').style.color = dd.color; break;
       case 'state':
         if (ev.state === STATE.INTRO) showScreen('intro');
         else if (ev.state === STATE.PLAY) showScreen(null);
@@ -100,6 +100,7 @@ function handleEvents() {
         $('clear-title').textContent = r.special ? 'ÖZEL BİTİRİŞ!' : 'PARKUR TAMAMLANDI';
         $('clear-honor').textContent = r.honor;
         $('clear-honor-note').textContent = r.improved ? (r.prevHonor ? `Önceki en iyi: ${r.prevHonor} → yeni rekor!` : (r.deaths === 0 ? 'Hiç can kaybetmedin: +5 onur' : '')) : `En iyi sonucun ${r.prevHonor} onur olarak kalıyor.`;
+        { const dd = DIFFICULTY[r.difficulty] || DIFFICULTY.acemi; $('clear-diff').innerHTML = `Zorluk: <b style="color:${dd.color}">${dd.name}</b>${dd.reward > 1 ? ` · onur ve HEPCOIN ×${dd.reward}` : ''}`; }
         $('clear-pct').textContent = `${Math.floor(b.percent)}%`;
         $('clear-over').textContent = fmt(b.over);
         $('clear-time').textContent = fmt(b.time);
@@ -153,6 +154,7 @@ function renderLevels() {
     car.appendChild(card);
   }
   $('levels-honor').textContent = `★ ${totalHonor(prof)}`;
+  renderDiffSeg();
   let cleared = 0; for (let L = 1; L <= LEVEL_COUNT; L++) cleared += levelClearedCount(prof, L);
   $('levels-progress').style.width = `${(cleared / totalParkurs()) * 100}%`;
   selectLevel(selLevel, true);
@@ -169,6 +171,13 @@ $('level-carousel').addEventListener('scroll', () => {
     if (best && +best.dataset.level !== selLevel) selectLevel(+best.dataset.level);
   }, 80);
 }, { passive: true });
+
+function renderDiffSeg() {
+  const prof = account.profile, cur = prof.settings.difficulty || 'acemi';
+  $('diff-seg').innerHTML = Object.keys(DIFFICULTY).map(k => `<button type="button" data-k="${k}" class="${k === cur ? 'on ' + k : ''}">${DIFFICULTY[k].name}${DIFFICULTY[k].reward > 1 ? ` ×${DIFFICULTY[k].reward}` : ''}</button>`).join('');
+  $('diff-desc').textContent = DIFFICULTY[cur].desc;
+  $('diff-seg').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { prof.settings.difficulty = b.dataset.k; account.save(); sfx.tap(); renderDiffSeg(); }));
+}
 
 function scrollToLevel(L, smooth = true) {
   const el = $('level-carousel').querySelector(`[data-level="${L}"]`);
