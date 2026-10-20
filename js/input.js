@@ -5,12 +5,15 @@ export const DIR = { NONE: 0, UP: 1, DOWN: 2, LEFT: 3, RIGHT: 4 };
 export const DIR_VEC = { 1: [0, -1], 2: [0, 1], 3: [-1, 0], 4: [1, 0] };
 
 export class Input {
-  constructor(surface, fireBtn) {
+  constructor(surface, fireBtn, drawBtn) {
     this.surface = surface;
     this.primary = DIR.NONE;     // baskın yön
     this.secondary = DIR.NONE;   // ikinci eksen (köşe dönüş yardımı)
     this.fire = false;
     this.keyFire = false;
+    this.draw = false;      // dokunmatik ÇİZ düğmesi
+    this.keyDraw = false;   // klavye: Boşluk
+    this.isTouch = false;   // ilk dokunuşta true
     this.touchId = null;
     this.anchor = null;          // {x,y}
     this.pos = null;
@@ -32,10 +35,19 @@ export class Input {
 
     window.addEventListener('keydown', e => {
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
+      if (e.repeat) return;
       this.keys.add(e.key); this.fireAny(); this.updateKeys();
     });
     window.addEventListener('keyup', e => { this.keys.delete(e.key); this.updateKeys(); });
 
+    if (drawBtn) {
+      drawBtn.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); this.draw = true; this.isTouch = true; drawBtn.classList.add('held'); this.fireAny(); }, opt);
+      const up = e => { e.preventDefault(); e.stopPropagation(); this.draw = false; drawBtn.classList.remove('held'); };
+      drawBtn.addEventListener('touchend', up, opt);
+      drawBtn.addEventListener('touchcancel', up, opt);
+      drawBtn.addEventListener('mousedown', e => { e.stopPropagation(); this.draw = true; drawBtn.classList.add('held'); });
+      window.addEventListener('mouseup', () => { if (this.draw) { this.draw = false; drawBtn.classList.remove('held'); } });
+    }
     if (fireBtn) {
       fireBtn.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); this.fire = true; this.fireAny(); }, opt);
       fireBtn.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); this.fire = false; }, opt);
@@ -54,6 +66,7 @@ export class Input {
     this.fireAny();
     if (this.touchId !== null && this.touchId !== 'mouse') return;
     const t = e.changedTouches[0];
+    this.isTouch = true;
     this.touchId = t.identifier;
     this.anchor = { x: t.clientX, y: t.clientY };
     this.pos = { ...this.anchor };
@@ -65,6 +78,8 @@ export class Input {
   onTouchEnd(e) {
     for (const t of e.changedTouches) if (t.identifier === this.touchId) { e.preventDefault(); this.release(); }
   }
+  get drawHeld() { return this.draw || this.keyDraw; }
+
   release() {
     this.touchId = null; this.anchor = null; this.pos = null; this.visible = false;
     this.primary = DIR.NONE; this.secondary = DIR.NONE;
@@ -97,6 +112,7 @@ export class Input {
     if (v && h) { this.primary = this.lastAxis === 'h' ? h : v; this.secondary = this.lastAxis === 'h' ? v : h; }
     else { this.primary = v || h; this.secondary = DIR.NONE; }
     if (v && !h) this.lastAxis = 'v'; else if (h && !v) this.lastAxis = 'h';
-    this.keyFire = k.has(' ') || k.has('Shift');
+    this.keyDraw = k.has(' ');
+    this.keyFire = k.has('x') || k.has('X') || k.has('Shift') || k.has('Control');
   }
 }

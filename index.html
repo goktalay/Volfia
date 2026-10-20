@@ -29,6 +29,7 @@
         <div class="hud-box right"><span id="timer" class="timer">150</span></div>
       </div>
       <div id="powers" class="powers"></div>
+      <div id="bossbar" class="bossbar hidden"><span id="bossbar-name">CANAVAR</span><div class="bossbar-track"><i id="bossbar-fill"></i></div></div>
     </header>
 
     <main id="field">
@@ -36,7 +37,8 @@
     </main>
 
     <footer id="controls">
-      <div id="hint" class="hint">Parmağını ekranda sürükle. Mavi halka: güvendesin. Boş alana girince halka kalkar, hat çizilir.</div>
+      <div id="hint" class="hint">Sürükle: yön · <b>ÇİZ</b>'e basılı tut: hat çiz · Klavye: Boşluk = çiz, X = lazer</div>
+      <button id="btn-draw" class="draw" aria-label="Çiz"><span>ÇİZ</span></button>
       <button id="btn-fire" class="fire hidden" aria-label="Lazer">LAZER</button>
       <button id="btn-pause" class="icon-btn" aria-label="Duraklat">II</button>
     </footer>
@@ -58,6 +60,8 @@
       <summary>NASIL OYNANIR</summary>
       <ul>
         <li><b>Sürükle:</b> Parmağını ekranın herhangi bir yerine koyup sürükle, gemi o yöne gider.</li>
+        <li><b>ÇİZ düğmesi:</b> Korumalı alandan çıkmak için alttaki ÇİZ düğmesine (bilgisayarda Boşluk) basılı tut, diğer parmağınla yön ver. Bırakırsan gemi durur ve fitil yanar.</li>
+        <li><b>Bölüm sonu canavarı:</b> her bölümün son parkurunda daha büyük ve dayanıklı bir canavar bekler; %40'ta öfkelenir. Yenince ek onur ve HEPCOIN.</li>
         <li><b>Hat çiz:</b> Kenardan boş alana gir. Kenara döndüğünde boss'un olmadığı taraf senin olur.</li>
         <li><b>%80</b> alanı ele geçir, parkuru bitir. Fazlası onur puanı ve bonus.</li>
         <li><b>Mavi halka</b> varken güvendesin. Çizerken halka kalkar, düşman hatta değerse fitil yanar.</li>
@@ -132,7 +136,8 @@
     </section>
     <section class="card">
       <h3>OYUN</h3>
-      <label class="switch"><span>Ses</span><input id="set-sound" type="checkbox"></label>
+      <label class="switch"><span>Ses efektleri</span><input id="set-sound" type="checkbox"></label>
+      <label class="switch"><span>Müzik</span><input id="set-music" type="checkbox"></label>
       <label class="switch"><span>Titreşim</span><input id="set-vibrate" type="checkbox"></label>
     </section>
     <section class="card">
@@ -146,6 +151,7 @@
   <div id="screen-intro" class="screen hidden">
     <div class="lvl-no">BÖLÜM <span id="intro-no">1</span> · PARKUR <span id="intro-p">1</span>/<span id="intro-n">5</span></div>
     <div class="lvl-name" id="intro-name">VOLFAI YÖRÜNGESİ</div>
+    <div id="intro-boss" class="boss-banner hidden">⚠ BÖLÜM SONU CANAVARI ⚠</div>
     <div class="creature-line">YARATIK: <span id="intro-creature">UZAY AMİBİ</span></div>
     <div class="diff-line" id="intro-diff">ACEMİ</div>
     <div class="lvl-sub">HAZIR OL</div>
@@ -154,7 +160,7 @@
   <!-- PARKUR SONU -->
   <div id="screen-clear" class="screen hidden">
     <div class="lvl-no" id="clear-title">PARKUR TAMAMLANDI</div>
-    <div class="honor-big">+<span id="clear-honor">0</span> ONUR</div>
+    <div class="honor-big anim-pop">+<span id="clear-honor">0</span> ONUR</div>
     <div id="clear-honor-note" class="note"></div>
     <div id="clear-diff" class="note"></div>
     <table class="bonus">
@@ -162,7 +168,7 @@
       <tr><td>Fazla alan bonusu</td><td id="clear-over">0</td></tr>
       <tr><td>Zaman bonusu</td><td id="clear-time">0</td></tr>
       <tr id="clear-special-row" class="hidden"><td>ÖZEL BİTİRİŞ</td><td id="clear-special">0</td></tr>
-      <tr><td>HEPCOIN</td><td id="clear-coins" class="coin">+0</td></tr>
+      <tr><td><span class="coin-ic"></span>HEPCOIN</td><td id="clear-coins" class="coin">+0</td></tr>
       <tr><td>Skor</td><td id="clear-score">0</td></tr>
     </table>
     <div id="clear-unlock" class="unlock hidden">YENİ BÖLÜM AÇILDI!</div>

@@ -285,7 +285,7 @@ export class Renderer {
 
   drawBoss(ctx, b, S, frozen, def) {
     const x = b.x * S, y = b.y * S, r = b.r * S;
-    const hue = b.hue ?? (def.hue + 180) % 360;
+    const hue = b.enraged && Math.sin(this.t * 9) > 0.2 ? 0 : (b.hue ?? (def.hue + 180) % 360);
     const flash = b.hitFlash > 0;
     const body = flash ? '#fff' : (frozen ? '#9fdcff' : `hsl(${hue},80%,55%)`);
     const light = flash ? '#fff' : (frozen ? '#d8f4ff' : `hsl(${hue},90%,78%)`);

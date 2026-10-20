@@ -27,6 +27,12 @@ ekrana eklenebilir, çevrimdışı oynanır.
 - **Güdümlü füzeler ve saptırıcılar:** 4. bölümden itibaren boss, çizim halindeki gemiyi arkadan
   takip eden füzeler atar. Saptırıcılar menzile giren füzeyi imha eder, zamanla yeniden dolar;
   Saptırıcı yükseltmesiyle sayı ve dolum hızı artar.
+- **ÇİZ düğmesi:** Volfied'deki gibi korumalı alandan çıkmak için düğme basılı tutulur (telefonda
+  alttaki ÇİZ düğmesi, bilgisayarda Boşluk). Bırakınca hat ilerlemez. Lazer: X / Shift.
+- **Bölüm sonu canavarı:** her bölümün son parkurunda ×1.35 boyut, ×2 can, daha sık ateş; %40'ta
+  öfkelenir (hız ×1.3). Yenince +10 onur ve ek HEPCOIN. HUD'da can çubuğu.
+- **Ödül animasyonu ve müzik:** parkur sonunda sayılar tık sesiyle artar; WebAudio ile sentezlenen
+  döngülü arka plan müziği (menü/oyun/acele modları), Ayarlar'dan kapatılabilir.
 - **Zorluk:** Acemi, Uzman (ödül ×1.5), Kahraman (ödül ×2, bir can eksik, füzeler ilk bölümden).
   Bölümler ekranından seçilir; yaratık ve düşman hızı, düşman sayısı, ateş sıklığı, süre ve fitil hızı değişir.
 - **Görünüm ayarları:** oyun alanı çözünürlüğü (Büyük 60×90, Normal 80×120, İnce 100×150) ve

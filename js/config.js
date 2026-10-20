@@ -48,6 +48,7 @@ export const HONOR = {
   PER_PERCENT_OVER: 1,  // %80 üstü her yüzde (en fazla 20)
   SPECIAL: 10,          // boss'u lazerle yok etmek
   NO_DEATH: 5,          // hiç can kaybetmeden
+  BOSS: 10,             // bölüm sonu canavarını yenmek
   PER_PARKUR_REQUIRED: 15, // sonraki bölüm için parkur başına gereken onur
 };
 
@@ -117,7 +118,7 @@ const onMastertool = typeof location !== 'undefined' && /(^|\.)mastertool\.downl
 export const MASTERTOOL = {
   API_BASE: onMastertool ? location.origin : '',   // ör. 'https://mastertool.download'
   APP_CODE: 'vf',                                   // VOLFAI uygulama kodu → /api/vf/...
-  APP_VERSION: '0.5.0',
+  APP_VERSION: '0.6.0',
   REGISTER_URL: 'https://mastertool.download/kayit?app=vf',
   LOGIN_URL: 'https://mastertool.download/giris?app=vf',
 };

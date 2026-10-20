@@ -2,7 +2,7 @@
 import { Game, STATE } from './game.js';
 import { Renderer, drawShipShape } from './render.js';
 import { Input } from './input.js';
-import { Sfx } from './audio.js';
+import { Sfx, Music } from './audio.js';
 import { Account } from './account.js';
 import { POWERUPS, CLEAR_PERCENT, LEVEL_COUNT, UPGRADES, MASTERTOOL, SHIPS, TIMER, FIELD_SIZES, SPRITE_SCALES, DIFFICULTY } from './config.js';
 import { levelInfo, parkurCount, totalParkurs, drawLevelArt } from './levels.js';
@@ -13,13 +13,14 @@ const sfx = new Sfx();
 const account = new Account();
 const game = new Game(sfx, account);
 const renderer = new Renderer($('game'), $('stick'));
-const input = new Input(document.body, $('btn-fire'));
-window.__volfai = { game, input, renderer, account };
+const input = new Input(document.body, $('btn-fire'), $('btn-draw'));
+const music = new Music(sfx);
+window.__volfai = { game, input, renderer, account, music };
 
 const tap = (el, fn) => {
   let lastTouch = 0;
-  el.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); lastTouch = Date.now(); sfx.init(); sfx.resume(); fn(); }, { passive: false });
-  el.addEventListener('click', e => { e.preventDefault(); if (Date.now() - lastTouch < 700) return; sfx.init(); sfx.resume(); fn(); });
+  el.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); lastTouch = Date.now(); audioStart(); fn(); }, { passive: false });
+  el.addEventListener('click', e => { e.preventDefault(); if (Date.now() - lastTouch < 700) return; audioStart(); fn(); });
 };
 const screens = { title: $('screen-title'), levels: $('screen-levels'), hangar: $('screen-hangar'), settings: $('screen-settings'), intro: $('screen-intro'), clear: $('screen-clear'), pause: $('screen-pause'), over: $('screen-over') };
 let currentScreen = 'title', prevScreen = 'title';
@@ -36,8 +37,10 @@ function showScreen(name) {
 // --- görünüm ayarları ---
 renderer.spriteScale = account.profile.settings.spriteScale || 1.3;
 
-// --- ses ---
-input.onAny = () => { sfx.init(); sfx.resume(); };
+// --- ses & müzik ---
+music.enabled = account.profile.settings.music !== false;
+function audioStart() { sfx.init(); sfx.resume(); music.start(); music.setEnabled(account.profile.settings.music !== false); }
+input.onAny = audioStart;
 sfx.setMuted(!!account.profile.settings.muted);
 
 // --- boyutlandırma ---
@@ -64,7 +67,7 @@ function updateHud() {
     if ($('armor').dataset.k !== ak) { $('armor').dataset.k = ak; $('armor').innerHTML = Array.from({ length: am }, (_, i) => `<i class="${i < game.armor ? '' : 'off'}"></i>`).join(''); }
     if ($('defl').dataset.k !== dk) { $('defl').dataset.k = dk; $('defl').innerHTML = Array.from({ length: dm }, (_, i) => `<i class="${i < game.deflectors ? '' : 'off'}"></i>`).join(''); }
   }
-  if (game.def) { const ln = $('levelname'); ln.textContent = `${DIFFICULTY[game.def.difficulty].name} · B${game.def.L} · P${game.def.p}/${game.def.n} · ${game.def.name}`; ln.className = `lvl diff-${game.def.difficulty}`; }
+  if (game.def) { const ln = $('levelname'); ln.textContent = `${DIFFICULTY[game.def.difficulty].name.slice(0, 3)} · B${game.def.L} P${game.def.p}/${game.def.n} · ${game.def.name}`; ln.className = `lvl diff-${game.def.difficulty}`; }
   let html = '';
   for (const k of ['S', 'T', 'L']) if (game.powers[k] > 0) {
     const d = POWERUPS[k].duration + (k === 'L' ? game.fx.laserBonus : 0);
@@ -75,6 +78,13 @@ function updateHud() {
   if (game.superWeapon) html += `<span class="power" style="color:#fff">SÜPER</span>`;
   $('powers').innerHTML = html;
   $('btn-fire').classList.toggle('hidden', !(game.powers.L > 0 && game.state === STATE.PLAY));
+  const bb = $('bossbar');
+  if (game.def?.isBossParkur && game.bosses.length) {
+    bb.classList.remove('hidden'); bb.classList.toggle('enraged', !!game.enraged);
+    const hp = game.bosses.reduce((a, b) => a + (b.alive ? b.hp : 0), 0), mx = game.bosses.reduce((a, b) => a + b.maxHp, 0);
+    $('bossbar-fill').style.width = `${Math.max(0, hp / mx * 100)}%`;
+    $('bossbar-name').textContent = game.def.creature.name + (game.enraged ? ' · ÖFKELİ' : '');
+  } else bb.classList.add('hidden');
 }
 
 // --- oyun olayları ---
@@ -83,9 +93,11 @@ function handleEvents() {
     switch (ev.type) {
       case 'trail': renderer.setTrailPixel(ev.x, ev.y); break;
       case 'parkur':
-        $('intro-no').textContent = ev.def.L; $('intro-p').textContent = ev.def.p; $('intro-n').textContent = ev.def.n; $('intro-name').textContent = ev.def.name; $('intro-creature').textContent = ev.def.creature.name + (ev.def.dualBoss ? ' ×2' : ''); const dd = DIFFICULTY[ev.def.difficulty]; $('intro-diff').textContent = `ZORLUK: ${dd.name}${dd.reward > 1 ? ` · ÖDÜL ×${dd.reward}` : ''}`; $('intro-diff').style.color = dd.color; break;
+        $('intro-no').textContent = ev.def.L; $('intro-p').textContent = ev.def.p; $('intro-n').textContent = ev.def.n; $('intro-name').textContent = ev.def.name; $('intro-creature').textContent = ev.def.creature.name + (ev.def.dualBoss ? ' ×2' : ''); const dd = DIFFICULTY[ev.def.difficulty]; $('intro-diff').textContent = `ZORLUK: ${dd.name}${dd.reward > 1 ? ` · ÖDÜL ×${dd.reward}` : ''}`; $('intro-diff').style.color = dd.color; $('intro-boss').classList.toggle('hidden', !ev.def.isBossParkur); break;
+      case 'hurry': music.setHurry(true); break;
       case 'state':
-        if (ev.state === STATE.INTRO) showScreen('intro');
+        music.setMood([STATE.INTRO, STATE.PLAY, STATE.DYING].includes(ev.state) ? 'play' : 'menu');
+        if (ev.state === STATE.INTRO) { music.setHurry(false); showScreen('intro'); }
         else if (ev.state === STATE.PLAY) showScreen(null);
         else if (ev.state === STATE.PAUSE) showScreen('pause');
         else if (ev.state === STATE.MENU) showScreen('levels');
@@ -97,7 +109,8 @@ function handleEvents() {
         break;
       case 'clear': {
         const r = ev.result, b = r.bonus;
-        $('clear-title').textContent = r.special ? 'ÖZEL BİTİRİŞ!' : 'PARKUR TAMAMLANDI';
+        $('clear-title').textContent = r.bossParkur ? `${r.creature} YENİLDİ!` : (r.special ? 'ÖZEL BİTİRİŞ!' : 'PARKUR TAMAMLANDI');
+        if (r.bossParkur) sfx.bossDie();
         $('clear-honor').textContent = r.honor;
         $('clear-honor-note').textContent = r.improved ? (r.prevHonor ? `Önceki en iyi: ${r.prevHonor} → yeni rekor!` : (r.deaths === 0 ? 'Hiç can kaybetmedin: +5 onur' : '')) : `En iyi sonucun ${r.prevHonor} onur olarak kalıyor.`;
         { const dd = DIFFICULTY[r.difficulty] || DIFFICULTY.acemi; $('clear-diff').innerHTML = `Zorluk: <b style="color:${dd.color}">${dd.name}</b>${dd.reward > 1 ? ` · onur ve HEPCOIN ×${dd.reward}` : ''}`; }
@@ -117,12 +130,56 @@ function handleEvents() {
         else if (r.L < LEVEL_COUNT) { nb.textContent = `BÖLÜM ${r.L + 1} İÇİN ${levelHonorRequired(r.L) - levelHonor(account.profile, r.L)} ONUR DAHA GEREK`; nb.disabled = true; }
         else { nb.textContent = 'KAMPANYA TAMAMLANDI!'; nb.disabled = true; }
         showScreen('clear');
+        animateResult(r);
         break;
       }
       default: break;
     }
   }
   game.events.length = 0;
+}
+
+// ===== SONUÇ ANİMASYONU: satırlar sırayla gelir, sayılar tık sesiyle artar =====
+let resultAnim = 0;
+function animateResult(r) {
+  const token = ++resultAnim;
+  const rows = [...document.querySelectorAll('#screen-clear .bonus tr')].filter(tr => !tr.classList.contains('hidden'));
+  rows.forEach(tr => tr.classList.remove('in'));
+  const honorEl = $('clear-honor'); honorEl.textContent = '0';
+  const targets = [
+    { el: honorEl, to: r.honor, prefix: '', suffix: '' },
+    { el: $('clear-pct'), to: Math.floor(r.bonus.percent), prefix: '', suffix: '%' },
+    { el: $('clear-over'), to: r.bonus.over },
+    { el: $('clear-time'), to: r.bonus.time },
+    ...(r.special ? [{ el: $('clear-special'), to: r.bonus.special }] : []),
+    { el: $('clear-coins'), to: r.coins, prefix: '+', coin: true },
+    { el: $('clear-score'), to: game.score },
+  ];
+  const countUp = (t, dur) => new Promise(res => {
+    const start = performance.now(); let lastTick = 0;
+    t.el.classList.add('counting');
+    const ic = t.coin ? t.el.parentElement.querySelector('.coin-ic') : null; if (ic) ic.classList.add('spin');
+    const frame = now => {
+      if (token !== resultAnim) return res();
+      const k = Math.min(1, (now - start) / dur), e = 1 - Math.pow(1 - k, 3);
+      const v = Math.round(t.to * e);
+      t.el.textContent = `${t.prefix || ''}${fmt(v)}${t.suffix || ''}`;
+      if (now - lastTick > 45 && k < 1 && t.to > 0) { lastTick = now; sfx.count(); }
+      if (k < 1) requestAnimationFrame(frame);
+      else { t.el.classList.remove('counting'); if (ic) { ic.classList.remove('spin'); sfx.cash(); } else if (t.to > 0) sfx.tap(); res(); }
+    };
+    requestAnimationFrame(frame);
+  });
+  (async () => {
+    await countUp(targets[0], 900);
+    for (let i = 1; i < targets.length; i++) {
+      if (token !== resultAnim) return;
+      const tr = targets[i].el.closest('tr'); if (tr) tr.classList.add('in');
+      await new Promise(r2 => setTimeout(r2, 120));
+      await countUp(targets[i], targets[i].coin ? 800 : 550);
+    }
+    $('clear-unlock').classList.contains('hidden') || sfx.power();
+  })();
 }
 
 // ===== BÖLÜM SEÇİMİ =====
@@ -292,6 +349,7 @@ function drawShip(cv, up, shipId) {
 function renderSettings() {
   const prof = account.profile;
   $('set-sound').checked = !prof.settings.muted;
+  $('set-music').checked = prof.settings.music !== false;
   $('set-vibrate').checked = !!prof.settings.vibrate;
   $('register-link').href = MASTERTOOL.REGISTER_URL;
   const info = $('acct-info');
@@ -320,6 +378,7 @@ $('login-form').addEventListener('submit', async e => {
 });
 $('btn-logout').addEventListener('click', async () => { await account.logout(); renderSettings(); });
 $('set-sound').addEventListener('change', e => { account.profile.settings.muted = !e.target.checked; sfx.setMuted(!e.target.checked); account.save(); });
+$('set-music').addEventListener('change', e => { account.profile.settings.music = e.target.checked; music.setEnabled(e.target.checked); account.save(); });
 $('set-vibrate').addEventListener('change', e => { account.profile.settings.vibrate = e.target.checked; account.save(); });
 $('btn-reset').addEventListener('click', () => { if (confirm('Tüm ilerleme, HEPCOIN ve yükseltmeler silinecek. Emin misin?')) { account.resetProgress(); selLevel = null; renderSettings(); } });
 

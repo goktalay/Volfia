@@ -68,6 +68,7 @@ export class Game {
     this.missiles = [];
     this.lastTick = -1;
     this.overtime = 0;
+    this.enraged = false; this.hintT = 0;
     this.superWeapon = false;
     this.allBlocksBonusGiven = false;
     this.laserCooldown = 0;
@@ -167,6 +168,13 @@ export class Game {
     for (const k of ['S', 'T', 'L']) if (this.powers[k] > 0) { this.powers[k] -= dt; if (this.powers[k] <= 0) { this.powers[k] = 0; if (k === 'L') this.superWeapon = false; this.emit('powers'); } }
     if (p.invuln > 0) p.invuln -= dt;
     if (this.laserCooldown > 0) this.laserCooldown -= dt;
+    if (this.hintT > 0) this.hintT -= dt;
+    // bölüm sonu canavarı: %40'ta öfkelenir
+    if (this.def.isBossParkur && !this.enraged && this.grid.percent() >= 40) {
+      this.enraged = true;
+      for (const b of this.bosses) if (b.alive) { b.speed *= 1.3; b.enraged = true; const l = Math.hypot(b.vx, b.vy) || 1; b.vx = b.vx / l * b.speed; b.vy = b.vy / l * b.speed; }
+      this.floatText(this.grid.w / 2, this.grid.h / 2, 'CANAVAR ÖFKELENDİ!', '#ff5d5d', 2.2); this.shake = 0.5; this.sfx.hurry(); this.emit('enrage');
+    }
     // kalkan yenilenmesi (yükseltme)
     if (this.fx.shieldRegen && this.shields < Math.max(1, this.fx.startShields)) {
       this.shieldRegenT -= dt;
@@ -196,6 +204,7 @@ export class Game {
 
   updatePlayer(dt, input) {
     const p = this.player;
+    this.input = input;
     const want = input.primary;
     if (want === DIR.NONE) { p.acc = 0; if (p.drawing) p.idle += dt; return; }
     p.acc += this.playerSpeed() * dt;
@@ -220,6 +229,8 @@ export class Game {
         p.x = nx; p.y = ny; p.face = dir; return true;
       }
       if (v === CELL.EMPTY) {
+        // Volfied: korumalı alandan çıkmak için ÇİZ düğmesi (Boşluk) basılı olmalı
+        if (!this.input?.drawHeld) { this.drawHint(); return false; }
         p.drawing = true; p.start = { x: p.x, y: p.y }; p.trail = [];
         this.fuse.active = false;
         this.emit('safe', { safe: false });
@@ -228,6 +239,7 @@ export class Game {
       return false;
     }
     if (v === CELL.EMPTY) {
+      if (!this.input?.drawHeld) return false;   // düğme bırakılınca hat ilerlemez (fitil yanar!)
       if (!g.canExtendTrail(nx, ny, p.x, p.y)) return false;
       return this.extend(nx, ny, dir);
     }
@@ -244,6 +256,14 @@ export class Game {
     this.pickCoinAt(nx, ny);
     if (this.enemyAtCell(nx, ny)) { this.die(); return true; }
     return true;
+  }
+
+  drawHint() {
+    if (this.hintT > 0) return;
+    this.hintT = 2.5;
+    const p = this.player;
+    this.floatText(p.x, p.y - 4, this.input?.isTouch ? 'ÇİZ DÜĞMESİNE BASILI TUT' : 'BOŞLUK TUŞUNA BASILI TUT', '#5de4ff', 1.6);
+    this.emit('drawhint');
   }
 
   enemyAtCell(x, y) {
@@ -643,17 +663,18 @@ export class Game {
       for (let i = 0; i < g.cells.length; i++) if (g.cells[i] === CELL.EMPTY || g.cells[i] === CELL.TRAIL) g.cells[i] = CELL.CLAIMED;
       g.claimedInterior = g.interiorTotal;
     }
+    if (this.def.isBossParkur) { for (const b of this.bosses) if (b.alive) { b.alive = false; this.burst(b.x, b.y, '#ffd23f', 80); this.burst(b.x, b.y, '#ff5d5d', 40); } this.shake = 1.0; }
     this.player.drawing = false; this.player.trail = [];
     this.gridVersion++;
     // parkur bitirme coin ödülü
-    const coinReward = 3 + Math.floor(this.L / 2) + (special ? 5 : 0) + (this.deaths === 0 ? 2 : 0);
+    const coinReward = 3 + Math.floor(this.L / 2) + (special ? 5 : 0) + (this.deaths === 0 ? 2 : 0) + (this.def.isBossParkur ? 8 + this.L : 0);
     this.coinsRun += coinReward;
     addCoins(this.profile, coinReward);
     // onur ve profil
-    const hr = recordParkur(this.profile, this.L, this.p, { percent: pct, special, deaths: this.deaths, score: this.score, reward: this.def.reward, difficulty: this.def.difficulty });
+    const hr = recordParkur(this.profile, this.L, this.p, { percent: pct, special, deaths: this.deaths, score: this.score, reward: this.def.reward, difficulty: this.def.difficulty, bossParkur: this.def.isBossParkur });
     if (this.score > this.profile.hiScore) this.profile.hiScore = this.score;
     this.account.save(true);
-    this.lastResult = { bonus, honor: hr.honor, improved: hr.improved, prevHonor: hr.prevHonor, coins: this.coinsRun, coinReward, special, deaths: this.deaths, L: this.L, p: this.p, n: parkurCount(this.L), difficulty: this.def.difficulty, reward: this.def.reward };
+    this.lastResult = { bonus, honor: hr.honor, improved: hr.improved, prevHonor: hr.prevHonor, coins: this.coinsRun, coinReward, special, deaths: this.deaths, L: this.L, p: this.p, n: parkurCount(this.L), difficulty: this.def.difficulty, reward: this.def.reward, bossParkur: this.def.isBossParkur, creature: this.def.creature.name };
     this.sfx.levelClear();
     this.setState(STATE.CLEAR);
     this.emit('clear', { result: this.lastResult });
