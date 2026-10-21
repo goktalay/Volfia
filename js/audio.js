@@ -54,6 +54,7 @@ export class Sfx {
   count()    { this.tone({ f: 1000 + Math.random() * 400, type: 'square', dur: 0.03, vol: 0.12 }); }
   cash()     { this.tone({ f: 1800, type: 'square', dur: 0.06, vol: 0.25 }); this.tone({ f: 2600, type: 'square', dur: 0.12, vol: 0.25, delay: 0.06 }); }
   bossDie()  { this.noise(0.8, 0.6); [100, 80, 60].forEach((f, i) => this.tone({ f, f2: 30, type: 'sawtooth', dur: 0.5, vol: 0.5, delay: i * 0.15 })); }
+  alert()    { this.tone({ f: 900, f2: 1500, type: 'square', dur: 0.09, vol: 0.2 }); }
   levelClear() { [392, 523, 659, 784, 1046, 1318].forEach((f, i) => this.tone({ f, type: 'triangle', dur: 0.2, vol: 0.4, delay: i * 0.1 })); }
   hurry()    { this.tone({ f: 660, type: 'square', dur: 0.1, vol: 0.3 }); this.tone({ f: 660, type: 'square', dur: 0.1, vol: 0.3, delay: 0.15 }); }
   gameOver() { [440, 415, 392, 349, 330, 262].forEach((f, i) => this.tone({ f, type: 'sawtooth', dur: 0.35, vol: 0.35, delay: i * 0.25 })); }

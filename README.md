@@ -33,6 +33,9 @@ ekrana eklenebilir, çevrimdışı oynanır.
   öfkelenir (hız ×1.3). Yenince +10 onur ve ek HEPCOIN. HUD'da can çubuğu.
 - **Ödül animasyonu ve müzik:** parkur sonunda sayılar tık sesiyle artar; WebAudio ile sentezlenen
   döngülü arka plan müziği (menü/oyun/acele modları), Ayarlar'dan kapatılabilir.
+- **Avcı canavarlar:** korumasız alana çıkınca küçük canavarların bir kısmı kısa bir tepki süresinden
+  sonra kızarıp doğrudan gemiye yönelir. Oran, tepki süresi, hız ve dönüş keskinliği zorluğa bağlı
+  (Acemi %35, Uzman %65, Kahraman %100 ve anında).
 - **Zorluk:** Acemi, Uzman (ödül ×1.5), Kahraman (ödül ×2, bir can eksik, füzeler ilk bölümden).
   Bölümler ekranından seçilir; yaratık ve düşman hızı, düşman sayısı, ateş sıklığı, süre ve fitil hızı değişir.
 - **Görünüm ayarları:** oyun alanı çözünürlüğü (Büyük 60×90, Normal 80×120, İnce 100×150) ve

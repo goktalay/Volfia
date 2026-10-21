@@ -273,9 +273,11 @@ export class Renderer {
 
   drawSmall(ctx, s, SS, frozen) {
     const S = this.cs * this.dpr;
-    const x = s.x * S, y = s.y * S, r = SS * 1.1;
-    ctx.save(); ctx.translate(x, y); ctx.rotate(frozen ? 0 : s.spin);
-    ctx.fillStyle = frozen ? '#9fdcff' : '#ff8a5d';
+    const x = s.x * S, y = s.y * S, r = SS * (s.alerted ? 1.3 : 1.1);
+    ctx.save(); ctx.translate(x, y);
+    if (s.alerted && !frozen) { ctx.shadowColor = '#ff2d2d'; ctx.shadowBlur = SS * 2.5; ctx.rotate(Math.atan2(s.vy, s.vx) + Math.PI / 4); }
+    else ctx.rotate(frozen ? 0 : s.spin);
+    ctx.fillStyle = frozen ? '#9fdcff' : (s.alerted ? '#ff3b3b' : '#ff8a5d');
     ctx.beginPath();
     for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2, rr = i % 2 ? r : r * 0.5; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
     ctx.closePath(); ctx.fill();

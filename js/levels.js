@@ -128,6 +128,7 @@ export function parkurDef(L, p, difficulty = 'acemi') {
     missileFrom: D.missileFrom,
     fuseMult: D.fuse,
     reward: D.reward,
+    hunt: D.hunt,
     blocks: isBossParkur ? 2 : Math.round(lerp(2, 6)),
     dualBoss: !!creature.dual,  // ikili yaratıklar bölüm boyunca çift gelir
   };

@@ -93,9 +93,9 @@ export const MISSILE = {
 
 // Zorluk seviyeleri: çarpanlar parkur tanımına uygulanır; ödül çarpanı onur ve HEPCOIN'i artırır
 export const DIFFICULTY = {
-  acemi:    { name: 'ACEMİ',    desc: 'Öğrenmek için. Füzeler 4. bölümden.',                 bossSpeed: 1.15, smallSpeed: 1.15, smalls: 0, shoot: 1.2, shootMin: 0,    time: 1.0,  bossHp: 1.0, missileFrom: 4, fuse: 1.0,  lives: 0,  reward: 1.0, color: '#9bff8a' },
-  uzman:    { name: 'UZMAN',    desc: 'Daha hızlı yaratıklar, daha çok düşman, %15 az süre. Ödül ×1.5.', bossSpeed: 1.45, smallSpeed: 1.4, smalls: 2, shoot: 1.8, shootMin: 0.15, time: 0.85, bossHp: 1.3, missileFrom: 2, fuse: 1.15, lives: 0,  reward: 1.5, color: '#ffd23f' },
-  kahraman: { name: 'KAHRAMAN', desc: 'Acımasız. Bir can eksik, füzeler ilk bölümden. Ödül ×2.',  bossSpeed: 1.8,  smallSpeed: 1.7, smalls: 4, shoot: 2.6, shootMin: 0.35, time: 0.7,  bossHp: 1.6, missileFrom: 1, fuse: 1.3,  lives: -1, reward: 2.0, color: '#ff5d8f' },
+  acemi:    { name: 'ACEMİ',    desc: 'Öğrenmek için. Füzeler 4. bölümden; küçük canavarların %35\'i saldırır.', bossSpeed: 1.15, smallSpeed: 1.15, smalls: 0, shoot: 1.2, shootMin: 0,    time: 1.0,  bossHp: 1.0, missileFrom: 4, fuse: 1.0,  lives: 0,  reward: 1.0, color: '#9bff8a', hunt: { chance: 0.35, delay: 0.9, speed: 1.1, turn: 1.8 } },
+  uzman:    { name: 'UZMAN',    desc: 'Daha hızlı yaratıklar, daha çok düşman, %15 az süre; canavarların %65\'i saldırır. Ödül ×1.5.', bossSpeed: 1.45, smallSpeed: 1.4, smalls: 2, shoot: 1.8, shootMin: 0.15, time: 0.85, bossHp: 1.3, missileFrom: 2, fuse: 1.15, lives: 0,  reward: 1.5, color: '#ffd23f', hunt: { chance: 0.65, delay: 0.45, speed: 1.3, turn: 2.6 } },
+  kahraman: { name: 'KAHRAMAN', desc: 'Acımasız. Bir can eksik, füzeler ilk bölümden, tüm canavarlar anında saldırır. Ödül ×2.',  bossSpeed: 1.8,  smallSpeed: 1.7, smalls: 4, shoot: 2.6, shootMin: 0.35, time: 0.7,  bossHp: 1.6, missileFrom: 1, fuse: 1.3,  lives: -1, reward: 2.0, color: '#ff5d8f', hunt: { chance: 1.0, delay: 0.15, speed: 1.5, turn: 3.6 } },
 };
 
 // Görünüm: oyun alanı çözünürlüğü (hücre sayısı) ve nesne boyutu çarpanı (Ayarlar)
@@ -118,7 +118,7 @@ const onMastertool = typeof location !== 'undefined' && /(^|\.)mastertool\.downl
 export const MASTERTOOL = {
   API_BASE: onMastertool ? location.origin : '',   // ör. 'https://mastertool.download'
   APP_CODE: 'vf',                                   // VOLFAI uygulama kodu → /api/vf/...
-  APP_VERSION: '0.6.0',
+  APP_VERSION: '0.6.1',
   REGISTER_URL: 'https://mastertool.download/kayit?app=vf',
   LOGIN_URL: 'https://mastertool.download/giris?app=vf',
 };

@@ -1,5 +1,5 @@
 // VOLFAI service worker - çevrimdışı oynanabilsin
-const CACHE = 'volfai-v8';
+const CACHE = 'volfai-v9';
 const ASSETS = ['./index.html', './css/style.css', './manifest.webmanifest',
   './js/main.js', './js/game.js', './js/grid.js', './js/render.js', './js/input.js', './js/audio.js', './js/levels.js', './js/config.js', './js/profile.js', './js/account.js',
   './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png'];

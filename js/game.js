@@ -234,6 +234,7 @@ export class Game {
         p.drawing = true; p.start = { x: p.x, y: p.y }; p.trail = [];
         this.fuse.active = false;
         this.emit('safe', { safe: false });
+        this.assignHunters();
         return this.extend(nx, ny, dir);
       }
       return false;
@@ -258,6 +259,21 @@ export class Game {
     return true;
   }
 
+  /** Korumasız alana çıkınca küçük canavarların bir kısmı avcı olur (oran/tepki/hız zorluğa bağlı). */
+  assignHunters() {
+    const H = this.def.hunt; if (!H) return;
+    let n = 0;
+    for (const s of this.smalls) {
+      if (!s.alive) continue;
+      s.hunt = this.rng() < H.chance;
+      s.huntT = H.delay * (0.7 + this.rng() * 0.6);   // hafif rastgele tepki
+      s.alerted = false;
+      if (s.hunt) n++;
+    }
+    this.huntersActive = n;
+  }
+  clearHunters() { for (const s of this.smalls) { s.hunt = false; s.alerted = false; } this.huntersActive = 0; }
+
   drawHint() {
     if (this.hintT > 0) return;
     this.hintT = 2.5;
@@ -281,6 +297,7 @@ export class Game {
     this.fuse.active = false;
     this.gridVersion++;
     this.emit('safe', { safe: true });
+    this.clearHunters();
 
     let chain = 0;
     for (const s of this.smalls) {
@@ -463,9 +480,23 @@ export class Game {
   // ---------------- küçük düşmanlar ----------------
   updateSmalls(dt) {
     const g = this.grid, p = this.player;
+    const H = this.def.hunt;
     for (const s of this.smalls) {
       if (!s.alive) continue;
       s.spin += dt * 6;
+      // avcı modu: oyuncu çizerken doğrudan ona yönelir
+      if (p.drawing && s.hunt && H) {
+        s.huntT -= dt;
+        if (s.huntT <= 0) {
+          if (!s.alerted) { s.alerted = true; this.floatText(s.x, s.y - 2, '!', '#ff5d5d', 0.6); this.sfx.alert(); }
+          const want = Math.atan2((p.y + 0.5) - s.y, (p.x + 0.5) - s.x);
+          let a = Math.atan2(s.vy, s.vx), d = want - a;
+          while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2;
+          a += Math.max(-H.turn * dt, Math.min(H.turn * dt, d));
+          const sp = s.speed * H.speed;
+          s.vx = Math.cos(a) * sp; s.vy = Math.sin(a) * sp;
+        }
+      } else if (s.alerted) { s.alerted = false; const l = Math.hypot(s.vx, s.vy) || 1; s.vx = s.vx / l * s.speed; s.vy = s.vy / l * s.speed; }
       let nx = s.x + s.vx * dt;
       let v = g.get(Math.floor(nx), Math.floor(s.y));
       if (v !== CELL.EMPTY) { if (v === CELL.TRAIL) this.igniteFuse(Math.floor(nx), Math.floor(s.y)); s.vx = -s.vx; nx = s.x; }
@@ -474,7 +505,7 @@ export class Game {
       v = g.get(Math.floor(s.x), Math.floor(ny));
       if (v !== CELL.EMPTY) { if (v === CELL.TRAIL) this.igniteFuse(Math.floor(s.x), Math.floor(ny)); s.vy = -s.vy; ny = s.y; }
       s.y = ny;
-      if (this.rng() < dt * 0.4) { const a = Math.atan2(s.vy, s.vx) + (this.rng() - 0.5) * 1.2; s.vx = Math.cos(a) * s.speed; s.vy = Math.sin(a) * s.speed; }
+      if (!(p.drawing && s.hunt && s.alerted) && this.rng() < dt * 0.4) { const a = Math.atan2(s.vy, s.vx) + (this.rng() - 0.5) * 1.2; s.vx = Math.cos(a) * s.speed; s.vy = Math.sin(a) * s.speed; }
       if (p.drawing && Math.abs(s.x - (p.x + 0.5)) < 1 && Math.abs(s.y - (p.y + 0.5)) < 1) { this.die(); return; }
     }
   }
@@ -633,6 +664,7 @@ export class Game {
     const p = this.player, g = this.grid;
     if (p.drawing) { g.clearTrail(p.trail); p.trail = []; p.drawing = false; }
     this.emit('safe', { safe: true });
+    this.clearHunters();
     this.gridVersion++;
     this.fuse.active = false;
     this.lives--; this.deaths++;
